@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Serah Terima Shift & Inventaris Operasional</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Text-Security Cross-Browser Masking CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/text-security/dist/text-security.css">
+  <style>
+    /* Custom Scrollbar & Mobile Smooth Touch Scrolling */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .touch-scroll { -webkit-overflow-scrolling: touch; }
+    
+    /* Prevent text selection highlight glitches on mobile tap */
+    button, a, input, select { -webkit-tap-highlight-color: transparent; }
+
+    /* Cross-browser Password Dot Masking (Prevents Chrome Password Breach Warning) */
+    .font-masked-password {
+      font-family: 'text-security-disc', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      -webkit-text-security: disc !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- ============================================================================== -->
+  <!-- HYBRID DEPLOY GAS_URL CONFIGURATION                                           -->
+  <!-- Ubah string GAS_URL dibawah jika dihosting external (e.g. Vercel/Netlify).    -->
+  <!-- Jika dibiarkan kosong "", aplikasi akan otomatis memakai google.script.run    -->
+  <!-- ============================================================================== -->
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxLBJsvUSWuTyKk5cejwWlWq5p4GpNhWeF_lQgp5ZSBPLTKbNtzIIS7I2VQ41Sd1TjYUQ/exec"; 
+  </script>
+
+  <!-- Global Loading Overlay -->
+  <div id="global-loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/70 backdrop-blur-sm text-white p-4">
+    <div class="animate-spin rounded-full h-12 w-12 border-4 border-amber-400 border-t-transparent mb-4"></div>
+    <p id="loading-msg" class="text-base font-semibold text-center">Memuat Aplikasi...</p>
+  </div>
+
+  <!-- App Wrapper -->
+  <div id="app" class="hidden min-h-screen flex flex-col md:flex-row relative">
+
+    <!-- Mobile Top Navigation Header -->
+    <header class="md:hidden sticky top-0 z-30 bg-slate-900 text-white flex items-center justify-between px-4 py-3 shadow-lg">
+      <div class="flex items-center space-x-2.5">
+        <div class="p-1.5 bg-amber-500 text-slate-900 rounded-lg">
+          <i data-lucide="zap" class="w-5 h-5"></i>
+        </div>
+        <span class="font-bold text-base tracking-wide">Shift & Inv App</span>
+      </div>
+      <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+    </header>
+
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div id="sidebar-backdrop" onclick="closeMobileMenu()" class="fixed inset-0 bg-slate-900/60 z-30 hidden md:hidden transition-opacity"></div>
+
+    <!-- Sidebar Navigation Drawer -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 transform -translate-x-full md:translate-x-0 md:static md:inset-auto transition-transform duration-300 ease-in-out flex flex-col p-4 flex-shrink-0 min-h-screen shadow-2xl md:shadow-none">
+      
+      <!-- Drawer Header / Brand -->
+      <div class="flex items-center justify-between md:justify-start space-x-3 mb-6 px-2 pt-2 md:pt-0 border-b border-slate-800 pb-4 md:border-b-0 md:pb-0">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 bg-amber-500 text-slate-900 rounded-lg shadow-md">
+            <i data-lucide="zap" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-white text-base leading-tight">Serah Terima Shift</h1>
+            <p class="text-xs text-slate-400">& Inventaris Operasional</p>
+          </div>
+        </div>
+        <button onclick="closeMobileMenu()" class="md:hidden text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="space-y-1.5 flex-1">
+        <button onclick="navTo('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
+          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <button onclick="navTo('shift')" id="nav-shift" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
+          <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+          <span>Serah Terima Shift</span>
+        </button>
+
+        <button onclick="navTo('inventory')" id="nav-inventory" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
+          <i data-lucide="boxes" class="w-5 h-5"></i>
+          <span>Inventaris Operasional</span>
+        </button>
+
+        <button onclick="navTo('stock-logs')" id="nav-stock-logs" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
+          <i data-lucide="history" class="w-5 h-5"></i>
+          <span>Riwayat Mutasi Stok</span>
+        </button>
+
+        <!-- Admin Only Menu -->
+        <div id="admin-menu" class="hidden pt-4 border-t border-slate-800 mt-4 space-y-1.5">
+          <span class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Administrator</span>
+          
+          <button onclick="navTo('users')" id="nav-users" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
+            <i data-lucide="users" class="w-5 h-5"></i>
+            <span>Kelola Petugas</span>
+          </button>
+
+          <button onclick="navTo('settings')" id="nav-settings" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>Pengaturan</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- User Profile Badge & Logout -->
+      <div class="pt-4 border-t border-slate-800 mt-auto">
+        <div class="flex items-center justify-between px-2">
+          <div class="flex items-center space-x-3 overflow-hidden">
+            <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-amber-400 flex-shrink-0" id="user-avatar">
+              U
+            </div>
+            <div class="truncate">
+              <p class="text-sm font-semibold text-white truncate" id="user-name">User Name</p>
+              <p class="text-xs text-slate-400 capitalize" id="user-role">Role</p>
+            </div>
+          </div>
+          <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-800" title="Keluar">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-y-auto touch-scroll custom-scrollbar p-4 sm:p-6 md:p-8 w-full max-w-7xl mx-auto">
+
+      <!-- Login View -->
+      <section id="view-login" class="hidden min-h-[80vh] flex items-center justify-center p-2">
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+          <div class="text-center mb-6">
+            <div class="inline-flex p-3.5 bg-amber-100 text-amber-600 rounded-2xl mb-3 shadow-inner">
+              <i data-lucide="zap" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-800">Masuk Aplikasi</h2>
+            <p class="text-sm text-slate-500 mt-1">Serah Terima Shift & Inventaris Operasional</p>
+          </div>
+
+          <form id="login-form" onsubmit="handleLogin(event)" autocomplete="off" class="space-y-4 sm:space-y-5">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Username</label>
+              <input type="text" id="login-username" required autocomplete="off" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-base text-slate-800" placeholder="Masukkan username">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password</label>
+              <div class="relative">
+                <input type="text" id="login-password" name="login_auth_key" required autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="font-masked-password w-full pl-4 pr-11 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none text-base text-slate-800 tracking-wider" placeholder="••••••••">
+                <button type="button" id="toggle-login-password-btn" onclick="toggleLoginPasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1.5 focus:outline-none" tabindex="-1" title="Tampilkan / Sembunyikan Password">
+                  <i data-lucide="eye" id="toggle-password-icon" class="w-5 h-5"></i>
+                </button>
+              </div>
+            </div>
+            <div id="login-error" class="hidden p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200"></div>
+            <button type="submit" id="btn-login-submit" class="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold py-3.5 px-4 rounded-xl shadow-md transition duration-200 text-base">
+              Masuk Aplikasi
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Dashboard View -->
+      <section id="view-dashboard" class="view-panel hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Overview Dashboard</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Ringkasan operasional shift dan kondisi inventaris saat ini.</p>
+          </div>
+          <button onclick="refreshAllData()" class="self-start sm:self-auto flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-sm transition active:scale-95" title="Sinkronkan data dengan server">
+            <i data-lucide="refresh-cw" class="w-4 h-4 text-amber-500"></i>
+            <span>Segarkan Data</span>
+          </button>
+        </div>
+
+        <!-- Stat Cards Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div class="p-3 bg-blue-100 text-blue-600 rounded-xl w-fit"><i data-lucide="clipboard-list" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
+            <div>
+              <p class="text-xs text-slate-500 font-medium">Total Shift</p>
+              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-total-shifts">0</h3>
+            </div>
+          </div>
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div class="p-3 bg-emerald-100 text-emerald-600 rounded-xl w-fit"><i data-lucide="package" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
+            <div>
+              <p class="text-xs text-slate-500 font-medium">Sub-Item Stok</p>
+              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-total-items">0</h3>
+            </div>
+          </div>
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div class="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit"><i data-lucide="alert-triangle" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
+            <div>
+              <p class="text-xs text-slate-500 font-medium">Stok Menipis</p>
+              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-low-stock">0</h3>
+            </div>
+          </div>
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div class="p-3 bg-amber-100 text-amber-600 rounded-xl w-fit"><i data-lucide="alert-circle" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
+            <div>
+              <p class="text-xs text-slate-500 font-medium">Gangguan Pending</p>
+              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-pending-issues">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 class="text-sm sm:text-base font-semibold text-slate-800 mb-4">Status Kondisi Peralatan Operasional</h3>
+            <div class="h-56 sm:h-64 flex justify-center">
+              <canvas id="chartEquipment"></canvas>
+            </div>
+          </div>
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 class="text-sm sm:text-base font-semibold text-slate-800 mb-4">Metrik Transaksi Operasional Shift Terakhir</h3>
+            <div class="h-56 sm:h-64 flex justify-center">
+              <canvas id="chartTransactions"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shift View -->
+      <section id="view-shift" class="view-panel hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Serah Terima Shift Operasional</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Kelola dan input log serah terima tugas operasional.</p>
+          </div>
+          <button onclick="openShiftModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold px-4 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            <span>+ Input Shift Baru</span>
+          </button>
+        </div>
+
+        <!-- Shift Log Table Container -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto touch-scroll">
+            <table class="w-full text-left text-sm min-w-[700px]">
+              <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5 sm:p-4">Tanggal & Waktu</th>
+                  <th class="p-3.5 sm:p-4">Nama Serah Terima</th>
+                  <th class="p-3.5 sm:p-4">Regu</th>
+                  <th class="p-3.5 sm:p-4">Jenis Shift</th>
+                  <th class="p-3.5 sm:p-4">Petugas Hadir</th>
+                  <th class="p-3.5 sm:p-4">Petugas Absen</th>
+                  <th class="p-3.5 sm:p-4">Dibuat Oleh</th>
+                </tr>
+              </thead>
+              <tbody id="shift-table-body" class="divide-y divide-slate-100">
+                <!-- Filled dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Inventory View -->
+      <section id="view-inventory" class="view-panel hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Katalog Inventaris & Stok</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Manajemen stok barang (Parent Category - Child Sub-Items).</p>
+          </div>
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <button onclick="openMutateModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-4 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition">
+              <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+              <span>Form Mutasi Stok</span>
+            </button>
+            <button onclick="openCategoryModal()" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold px-4 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>+ Kategori / Sub-Item</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Grid Wrapper -->
+        <div id="inventory-grid-container" class="space-y-4 sm:space-y-6">
+          <!-- Filled dynamically -->
+        </div>
+      </section>
+
+      <!-- Stock Logs View -->
+      <section id="view-stock-logs" class="view-panel hidden space-y-6">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Riwayat Mutasi & Audit Log Stok</h2>
+          <p class="text-xs sm:text-sm text-slate-500" id="stock-log-desc">Mencatat seluruh aktivitas perubahan stok inventaris.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto touch-scroll">
+            <table class="w-full text-left text-sm min-w-[750px]">
+              <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5 sm:p-4">Waktu</th>
+                  <th class="p-3.5 sm:p-4">Kategori</th>
+                  <th class="p-3.5 sm:p-4">Sub-Item</th>
+                  <th class="p-3.5 sm:p-4">Jenis Perubahan</th>
+                  <th class="p-3.5 sm:p-4">Jumlah</th>
+                  <th class="p-3.5 sm:p-4">Sebelum -> Sesudah</th>
+                  <th class="p-3.5 sm:p-4">Keterangan</th>
+                  <th class="p-3.5 sm:p-4">Pengubah</th>
+                </tr>
+              </thead>
+              <tbody id="stock-logs-table-body" class="divide-y divide-slate-100">
+                <!-- Data loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Users View (Admin Only) -->
+      <section id="view-users" class="view-panel hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Manajemen Akun Petugas</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Kelola pengguna, hak akses role, dan status akun.</p>
+          </div>
+          <button onclick="openUserModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold px-4 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition">
+            <i data-lucide="user-plus" class="w-5 h-5"></i>
+            <span>+ Tambah Petugas</span>
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto touch-scroll">
+            <table class="w-full text-left text-sm min-w-[600px]">
+              <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5 sm:p-4">Nama Lengkap</th>
+                  <th class="p-3.5 sm:p-4">Username</th>
+                  <th class="p-3.5 sm:p-4">Role</th>
+                  <th class="p-3.5 sm:p-4">Status</th>
+                  <th class="p-3.5 sm:p-4">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body" class="divide-y divide-slate-100">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings View -->
+      <section id="view-settings" class="view-panel hidden space-y-6 max-w-4xl">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Pengaturan Sistem & Profil</h2>
+          <p class="text-xs sm:text-sm text-slate-500">Kelola Master Data Regu dan Kata Sandi Akun.</p>
+        </div>
+
+        <!-- Master Regu Card -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b pb-2">Master Data Regu</h3>
+          <div id="teams-list" class="space-y-3">
+            <!-- Dynamic list -->
+          </div>
+          <button onclick="addTeamRow()" class="text-sm text-amber-600 font-semibold hover:underline flex items-center space-x-1 pt-1">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Tambah Baris Regu</span>
+          </button>
+          <div class="pt-2">
+            <button onclick="saveTeamsData()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-5 py-3 rounded-xl">
+              Simpan Master Regu
+            </button>
+          </div>
+        </div>
+
+        <!-- Change Password Card -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b pb-2">Ganti Kata Sandi</h3>
+          <form onsubmit="handleChangePassword(event)" class="space-y-4 max-w-md">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password Lama</label>
+              <input type="password" id="pass-old" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Password Baru</label>
+              <input type="password" id="pass-new" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+            </div>
+            <button type="submit" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold text-sm px-5 py-3 rounded-xl">
+              Perbarui Password
+            </button>
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================= RESPONSIVE MODALS ================= -->
+
+  <!-- Shift Input Modal -->
+  <div id="modal-shift" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
+      <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+        <h3 class="font-bold text-base sm:text-lg">Form Serah Terima Shift</h3>
+        <button onclick="closeModal('modal-shift')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+      </div>
+      
+      <form onsubmit="submitShiftForm(event)" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-4 sm:p-6 overflow-y-auto touch-scroll custom-scrollbar space-y-5 flex-1">
+          
+          <!-- Info Utama -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Serah Terima</label>
+              <input type="text" id="shift-nama" required placeholder="Contoh: Serah Terima Shift Pagi ke Malam" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Jenis Shift</label>
+              <select id="shift-jenis" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+                <option value="Piket Malam ke Pagi">Piket Malam ke Pagi</option>
+                <option value="Piket Pagi ke Sore">Piket Pagi ke Sore</option>
+                <option value="Piket Sore ke Malam">Piket Sore ke Malam</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Waktu / Tanggal Shift</label>
+              <input type="datetime-local" id="shift-waktu" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Pilih Regu (Maksimal 3)</label>
+              <div id="shift-regu-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 border rounded-xl max-h-32 overflow-y-auto">
+                <!-- Checkboxes dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Check-in Petugas -->
+          <div class="border-t pt-4">
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-2">Petugas Check-In / Check-Out</h4>
+            <div id="shift-petugas-container" class="space-y-2">
+              <!-- Dynamic Petugas list -->
+            </div>
+          </div>
+
+          <!-- Peralatan Operasional -->
+          <div class="border-t pt-4">
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-3">Peralatan & Kondisi Operasional</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Kendaraan</label>
+                <select id="eq-kendaraan" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+                  <option value="Mobil (Baik)">Mobil (Baik)</option>
+                  <option value="Motor (Baik)">Motor (Baik)</option>
+                  <option value="Rusak">Rusak / Bermasalah</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">HP APKT</label>
+                <select id="eq-hp" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+                  <option value="Baik">Baik</option>
+                  <option value="Rusak">Rusak</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Tool Kit Kendaraan</label>
+                <select id="eq-toolkit" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+                  <option value="Ada dan Lengkap">Ada dan Lengkap</option>
+                  <option value="Tidak Lengkap">Tidak Lengkap / Tidak Ada</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Stick 20 kV</label>
+                <select id="eq-stick" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+                  <option value="Baik">Baik</option>
+                  <option value="Rusak">Rusak</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Senter</label>
+                <select id="eq-senter" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+                  <option value="Baik">Baik</option>
+                  <option value="Rusak">Rusak</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Radio Gasap</label>
+                <select id="eq-radio" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+                  <option value="Baik">Baik</option>
+                  <option value="Rusak">Rusak</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Data Transaksi & Gangguan -->
+          <div class="border-t pt-4">
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-3">Data Transaksi & Gangguan (Angka)</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">MCB Terpakai</label>
+                <input type="number" id="tx-mcb" value="0" min="0" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">kWh Terpakai</label>
+                <input type="number" id="tx-kwh-used" value="0" min="0" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Sisa kWh Meter</label>
+                <input type="number" id="tx-kwh-rem" value="0" min="0" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Gangguan Pending</label>
+                <input type="number" id="tx-gangguan" value="0" min="0" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Pelanggan Smt</label>
+                <input type="number" id="tx-pelanggan" value="0" min="0" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Jumlah WO</label>
+                <input type="number" id="tx-wo" value="0" min="0" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Jumlah P0</label>
+                <input type="number" id="tx-p0" value="0" min="0" class="w-full px-3 py-2 border rounded-xl text-base sm:text-sm">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sticky Footer Modal -->
+        <div class="p-4 bg-slate-50 border-t flex justify-end space-x-3 flex-shrink-0">
+          <button type="button" onclick="closeModal('modal-shift')" class="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-semibold text-sm">Batal</button>
+          <button type="submit" id="btn-submit-shift" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold rounded-xl shadow-md text-sm">Simpan Shift</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Parent-Child Category Modal -->
+  <div id="modal-category" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col my-auto max-h-[90vh]">
+      <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+        <h3 class="font-bold text-base sm:text-lg">Tambah Kategori & Sub-Item</h3>
+        <button onclick="closeModal('modal-category')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+      </div>
+      <form onsubmit="submitCategoryForm(event)" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-4 sm:p-6 space-y-4 overflow-y-auto touch-scroll flex-1">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Nama Kategori (Parent)</label>
+            <input type="text" id="cat-name" required placeholder="Contoh: MCB, Fuse Link, Kabel" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+          </div>
+          
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-bold uppercase text-slate-700">Sub-Item (Child & Stok Awal)</label>
+              <button type="button" onclick="addSubItemRow()" class="text-xs font-bold text-amber-600 hover:underline">+ Sub-Item</button>
+            </div>
+            <div id="subitem-rows-container" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+              <!-- Dynamic rows -->
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t flex justify-end space-x-3 flex-shrink-0">
+          <button type="button" onclick="closeModal('modal-category')" class="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-semibold text-sm">Batal</button>
+          <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold rounded-xl text-sm">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mutasi Stok Modal -->
+  <div id="modal-mutate" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col my-auto max-h-[90vh]">
+      <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+        <h3 class="font-bold text-base sm:text-lg">Form Mutasi Stok</h3>
+        <button onclick="closeModal('modal-mutate')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+      </div>
+      <form onsubmit="submitMutateForm(event)" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-4 sm:p-6 space-y-4 overflow-y-auto touch-scroll flex-1">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Pilih Item Inventaris</label>
+            <select id="mutate-item-id" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+              <!-- Filled dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Jenis Mutasi</label>
+            <select id="mutate-type" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+              <option value="Tambah">Tambah Stok (+)</option>
+              <option value="Kurang">Kurangi Stok (-)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Jumlah / Qty</label>
+            <input type="number" id="mutate-qty" required min="1" value="1" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Keterangan / Alasan</label>
+            <input type="text" id="mutate-reason" required placeholder="Contoh: Digunakan untuk perbaikan gardu A" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t flex justify-end space-x-3 flex-shrink-0">
+          <button type="button" onclick="closeModal('modal-mutate')" class="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-semibold text-sm">Batal</button>
+          <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold rounded-xl text-sm">Proses Mutasi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- User Modal (Admin Only) -->
+  <div id="modal-user" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col my-auto max-h-[90vh]">
+      <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+        <h3 class="font-bold text-base sm:text-lg" id="modal-user-title">Tambah / Edit Petugas</h3>
+        <button onclick="closeModal('modal-user')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+      </div>
+      <form onsubmit="submitUserForm(event)" class="flex flex-col flex-1 overflow-hidden">
+        <div class="p-4 sm:p-6 space-y-4 overflow-y-auto touch-scroll flex-1">
+          <input type="hidden" id="user-id">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Nama Lengkap</label>
+            <input type="text" id="user-fullname" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Username</label>
+            <input type="text" id="user-username" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Password</label>
+            <input type="password" id="user-password" placeholder="Kosongkan jika tak diubah" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Role</label>
+            <select id="user-role-select" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+              <option value="Petugas">Petugas Operasional</option>
+              <option value="Admin">Administrator</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Status</label>
+            <select id="user-status-select" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+              <option value="Aktif">Aktif</option>
+              <option value="Nonaktif">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t flex justify-end space-x-3 flex-shrink-0">
+          <button type="button" onclick="closeModal('modal-user')" class="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-semibold text-sm">Batal</button>
+          <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold rounded-xl text-sm">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // State Application (Data disimpan di memori - tidak diambil setiap pindah menu)
+    let currentUser = null;
+    let dashboardStats = null;
+    let shiftsData = [];
+    let inventoryData = [];
+    let teamsData = [];
+    let usersList = [];
+    let stockLogsData = null; // Riwayat mutasi: null saat login/refresh, HANYA diambil ketika menu diakses
+    let chartEquipmentInstance = null;
+    let chartTransactionsInstance = null;
+
+    // Larangan Alert Bawaan Browser: Override default window.alert sebagai jaring pengaman
+    window.alert = function(msg) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Informasi',
+        text: String(msg),
+        confirmButtonColor: '#f59e0b'
+      });
+    };
+
+    // Toggle Tampilan Password Login (Eye Icon)
+    function toggleLoginPasswordVisibility() {
+      const input = document.getElementById('login-password');
+      const icon = document.getElementById('toggle-password-icon');
+      const isMasked = input.classList.contains('font-masked-password');
+      if (isMasked) {
+        input.classList.remove('font-masked-password', 'tracking-wider');
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        input.classList.add('font-masked-password', 'tracking-wider');
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      lucide.createIcons();
+    }
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initApp();
+    });
+
+    function showLoading(msg) {
+      document.getElementById('loading-msg').innerText = msg || 'Memuat...';
+      document.getElementById('global-loading').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+      document.getElementById('global-loading').classList.add('hidden');
+    }
+
+    // MOBILE DRAWER HANDLERS
+    function toggleMobileMenu() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const isOpen = !sidebar.classList.contains('-translate-x-full');
+      
+      if (isOpen) {
+        closeMobileMenu();
+      } else {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      }
+    }
+
+    function closeMobileMenu() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      sidebar.classList.add('-translate-x-full');
+      backdrop.classList.add('hidden');
+    }
+
+    // HYBRID DEPLOY API CALLER
+    async function callBackend(functionName, payload = {}) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 detik timeout
+
+      try {
+        if (GAS_URL && GAS_URL.trim() !== "") {
+          // HTTP Fetch API (External Deployment Mode)
+          const response = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: functionName, payload: payload }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          return await response.json();
+        } else {
+          // Native GAS Runner Mode
+          return new Promise((resolve, reject) => {
+            if (typeof google === 'undefined' || !google.script || !google.script.run) {
+              reject(new Error("Lingkungan GAS tidak terdeteksi dan GAS_URL belum diatur."));
+              return;
+            }
+            google.script.run
+              .withSuccessHandler((res) => { clearTimeout(timeoutId); resolve(res); })
+              .withFailureHandler((err) => { clearTimeout(timeoutId); reject(err); })
+              [functionName](payload.sessionToken, payload.data || payload);
+          });
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          Swal.fire({
+            icon: 'error',
+            title: 'Koneksi Terputus',
+            text: 'Gagal menghubungkan ke Spreadsheet: Request Timeout (Waktu tunggu habis).',
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+        throw err;
+      }
+    }
+
+    // PENGAMBILAN SEMUA DATA AWAL (KECUALI RIWAYAT MUTASI)
+    async function fetchAllInitialData() {
+      try {
+        // Coba endpoint batch getInitialData
+        const res = await callBackend('getInitialData', { sessionToken: currentUser.token });
+        if (res && res.success && res.data) {
+          return res.data;
+        }
+      } catch (err) {
+        // Fallback paralel jika endpoint batch belum tersedia di URL GAS
+      }
+
+      const [resDash, resShifts, resInv, resTeams, resUsers] = await Promise.all([
+        callBackend('getDashboardData', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
+        callBackend('getShifts', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
+        callBackend('getInventory', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
+        callBackend('getTeams', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
+        currentUser.role === 'Admin'
+          ? callBackend('getUsers', { sessionToken: currentUser.token }).catch(() => ({ success: false, data: [currentUser] }))
+          : Promise.resolve({ success: true, data: [currentUser] })
+      ]);
+
+      return {
+        dashboard: resDash.stats || { totalShifts: 0, totalItems: 0, lowStockCount: 0, pendingIssues: 0 },
+        shifts: resShifts.data || [],
+        inventory: resInv.data || [],
+        teams: resTeams.data || [],
+        users: resUsers.data || [currentUser]
+      };
+    }
+
+    async function loadAllInitialData() {
+      try {
+        const initial = await fetchAllInitialData();
+        dashboardStats = initial.dashboard || { totalShifts: 0, totalItems: 0, lowStockCount: 0, pendingIssues: 0 };
+        shiftsData = initial.shifts || [];
+        inventoryData = initial.inventory || [];
+        teamsData = initial.teams || [];
+        usersList = initial.users || [currentUser];
+
+        // Render seluruh tampilan dengan data di memori
+        renderDashboardUI();
+        renderShiftsUI();
+        renderInventoryUI();
+        if (currentUser.role === 'Admin') {
+          renderUsersUI();
+          renderTeamsUI();
+        }
+      } catch (err) {
+        console.error("Gagal memuat data awal:", err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Memuat Data',
+          text: 'Tidak dapat mengambil data awal: ' + (err.message || err),
+          confirmButtonColor: '#f59e0b'
+        });
+      }
+    }
+
+    // SINKRONISASI MANUAL VIA TOMBOL REFRESH
+    async function refreshAllData() {
+      showLoading('Menyinkronkan Data...');
+      try {
+        await loadAllInitialData();
+        // Jika sedang aktif di tab riwayat mutasi, perbarui juga mutasi
+        const stockLogsView = document.getElementById('view-stock-logs');
+        if (stockLogsView && !stockLogsView.classList.contains('hidden')) {
+          await loadStockLogs();
+        }
+        Swal.fire({
+          icon: 'success',
+          title: 'Data Tersinkron',
+          text: 'Semua data operasional berhasil diperbarui.',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function initApp() {
+      const savedUser = localStorage.getItem('app_user_session');
+      if (savedUser) {
+        try {
+          currentUser = JSON.parse(savedUser);
+          setupUserUI();
+          document.getElementById('app').classList.remove('hidden');
+          showLoading('Memuat Data Aplikasi...');
+          await loadAllInitialData();
+          hideLoading();
+          navTo('dashboard');
+        } catch (e) {
+          localStorage.removeItem('app_user_session');
+          showLoginScreen();
+          hideLoading();
+        }
+      } else {
+        showLoginScreen();
+        hideLoading();
+      }
+    }
+
+    function showLoginScreen() {
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('sidebar').classList.add('hidden');
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      document.getElementById('view-login').classList.remove('hidden');
+    }
+
+    function setupUserUI() {
+      document.getElementById('user-name').innerText = currentUser.nama_lengkap;
+      document.getElementById('user-role').innerText = currentUser.role;
+      document.getElementById('user-avatar').innerText = currentUser.nama_lengkap.charAt(0).toUpperCase();
+
+      if (currentUser.role === 'Admin') {
+        document.getElementById('admin-menu').classList.remove('hidden');
+      } else {
+        document.getElementById('admin-menu').classList.add('hidden');
+      }
+
+      document.getElementById('sidebar').classList.remove('hidden');
+      document.getElementById('view-login').classList.add('hidden');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('login-username').value;
+      const p = document.getElementById('login-password').value;
+      const errBox = document.getElementById('login-error');
+      errBox.classList.add('hidden');
+
+      showLoading('Verifikasi Akun...');
+      try {
+        let res;
+        if (GAS_URL && GAS_URL.trim() !== "") {
+          res = await callBackend('login', { username: u, password: p });
+        } else {
+          res = await new Promise((resolve) => {
+            google.script.run
+              .withSuccessHandler(resolve)
+              .withFailureHandler(err => resolve({ success: false, error: err.message }))
+              .loginUser(u, p);
+          });
+        }
+
+        if (res.success) {
+          currentUser = res.user;
+          localStorage.setItem('app_user_session', JSON.stringify(currentUser));
+          setupUserUI();
+          document.getElementById('loading-msg').innerText = 'Memuat Data Aplikasi...';
+          await loadAllInitialData();
+          hideLoading();
+          navTo('dashboard');
+        } else {
+          hideLoading();
+          errBox.innerText = res.error || "Login gagal";
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        hideLoading();
+        errBox.innerText = "Error: " + err.message;
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('app_user_session');
+      currentUser = null;
+      dashboardStats = null;
+      shiftsData = [];
+      inventoryData = [];
+      teamsData = [];
+      usersList = [];
+      stockLogsData = null;
+      showLoginScreen();
+    }
+
+    // SPA NAVIGATION (BEBAS LOADING UNTUK MENU YANG SUDAH TERMUAT)
+    function navTo(viewName) {
+      closeMobileMenu();
+
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-slate-800', 'text-amber-400'));
+
+      const targetView = document.getElementById('view-' + viewName);
+      const targetNav = document.getElementById('nav-' + viewName);
+
+      if (targetView) targetView.classList.remove('hidden');
+      if (targetNav) targetNav.classList.add('bg-slate-800', 'text-amber-400');
+
+      // Tampilkan chart dashboard yang telah dirender
+      if (viewName === 'dashboard' && dashboardStats) {
+        renderCharts(dashboardStats);
+      }
+
+      // KECUALI RIWAYAT MUTASI: HANYA DIAMBIL KETIKA MENU TERSEBUT DIAKSES
+      if (viewName === 'stock-logs') {
+        loadStockLogs();
+      }
+    }
+
+    // DASHBOARD RENDER
+    function renderDashboardUI() {
+      if (!dashboardStats) return;
+      document.getElementById('dash-total-shifts').innerText = dashboardStats.totalShifts ?? 0;
+      document.getElementById('dash-total-items').innerText = dashboardStats.totalItems ?? 0;
+      document.getElementById('dash-low-stock').innerText = dashboardStats.lowStockCount ?? 0;
+      document.getElementById('dash-pending-issues').innerText = dashboardStats.pendingIssues ?? 0;
+
+      renderCharts(dashboardStats);
+    }
+
+    function renderCharts(stats) {
+      const el1 = document.getElementById('chartEquipment');
+      if (el1) {
+        const ctx1 = el1.getContext('2d');
+        if (chartEquipmentInstance) chartEquipmentInstance.destroy();
+        chartEquipmentInstance = new Chart(ctx1, {
+          type: 'doughnut',
+          data: {
+            labels: ['Kondisi Baik', 'Perlu Perhatian'],
+            datasets: [{
+              data: [12, Math.max(1, stats.pendingIssues || 0)],
+              backgroundColor: ['#10b981', '#f43f5e']
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+
+      const el2 = document.getElementById('chartTransactions');
+      if (el2) {
+        const ctx2 = el2.getContext('2d');
+        if (chartTransactionsInstance) chartTransactionsInstance.destroy();
+        chartTransactionsInstance = new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: ['MCB', 'kWh', 'Gangguan', 'WO', 'P0'],
+            datasets: [{
+              label: 'Unit',
+              data: [8, 24, stats.pendingIssues || 0, 5, 2],
+              backgroundColor: '#f59e0b'
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
+    }
+
+    // SHIFT MODULE (RENDER LOKAL DARI MEMORI)
+    function renderShiftsUI() {
+      const tbody = document.getElementById('shift-table-body');
+      tbody.innerHTML = '';
+
+      if (shiftsData && shiftsData.length > 0) {
+        shiftsData.forEach(s => {
+          const hadir = (s.petugas_attendance || []).filter(p => !p.tidak_hadir).map(p => p.nama_lengkap).join(', ');
+          const absen = (s.petugas_attendance || []).filter(p => p.tidak_hadir).map(p => `${p.nama_lengkap} (${p.alasan || 'Tanpa Ket'})`).join(', ');
+
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3.5 sm:p-4 font-mono text-xs whitespace-nowrap">${new Date(s.waktu_shift).toLocaleString('id-ID')}</td>
+              <td class="p-3.5 sm:p-4 font-semibold text-slate-800">${s.nama_serah_terima}</td>
+              <td class="p-3.5 sm:p-4"><span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">${s.regu_list}</span></td>
+              <td class="p-3.5 sm:p-4 text-xs whitespace-nowrap">${s.jenis_shift}</td>
+              <td class="p-3.5 sm:p-4 text-xs text-emerald-600 font-medium">${hadir || '-'}</td>
+              <td class="p-3.5 sm:p-4 text-xs text-rose-500">${absen || '-'}</td>
+              <td class="p-3.5 sm:p-4 text-xs text-slate-500">${s.created_by}</td>
+            </tr>
+          `;
+        });
+      } else {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="p-8 text-center text-slate-400">
+              <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
+              <p>Belum ada log serah terima shift yang dicatat.</p>
+            </td>
+          </tr>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    function openShiftModal() {
+      // Data regu & petugas sudah siap di memori dari login/refresh -> Buka form INSTAN tanpa loading
+      const reguContainer = document.getElementById('shift-regu-container');
+      reguContainer.innerHTML = '';
+      (teamsData || []).forEach(t => {
+        reguContainer.innerHTML += `
+          <label class="flex items-center space-x-2 text-xs p-1 hover:bg-slate-50 rounded">
+            <input type="checkbox" name="shift-regu-cb" value="${t.nama_regu}" onchange="limitReguSelection(this)" class="rounded text-amber-500 w-4 h-4">
+            <span>${t.nama_regu}</span>
+          </label>
+        `;
+      });
+
+      const petugasContainer = document.getElementById('shift-petugas-container');
+      petugasContainer.innerHTML = '';
+      const list = (usersList && usersList.length > 0) ? usersList : [currentUser];
+      list.forEach(u => {
+        petugasContainer.innerHTML += `
+          <div class="p-3 bg-slate-50 border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <label class="flex items-center space-x-2 text-sm font-medium">
+              <input type="checkbox" name="petugas-present-cb" value="${u.id}" data-name="${u.nama_lengkap}" onchange="toggleAbsentReason('${u.id}', this)" class="rounded text-amber-500 w-4 h-4">
+              <span>${u.nama_lengkap} (${u.role})</span>
+            </label>
+            <div class="flex items-center space-x-2 text-xs pt-1 sm:pt-0">
+              <label class="flex items-center space-x-1 text-rose-600 font-semibold">
+                <input type="checkbox" id="absent-cb-${u.id}" onchange="toggleAbsentInput('${u.id}', this)" class="rounded text-rose-500 w-4 h-4">
+                <span>Tidak Hadir</span>
+              </label>
+              <input type="text" id="absent-reason-${u.id}" placeholder="Alasan..." disabled class="px-2.5 py-1.5 border rounded-lg text-xs flex-1 sm:w-36 disabled:bg-slate-200">
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('shift-waktu').value = new Date().toISOString().slice(0, 16);
+      document.getElementById('modal-shift').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function limitReguSelection(cb) {
+      const checked = document.querySelectorAll('input[name="shift-regu-cb"]:checked');
+      if (checked.length > 3) {
+        cb.checked = false;
+        Swal.fire({
+          icon: 'warning',
+          title: 'Peringatan',
+          text: 'Maksimal memilih 3 regu.',
+          confirmButtonColor: '#f59e0b'
+        });
+      }
+    }
+
+    function toggleAbsentReason(uid, presentCb) {
+      const absentCb = document.getElementById('absent-cb-' + uid);
+      if (presentCb.checked && absentCb) {
+        absentCb.checked = false;
+        toggleAbsentInput(uid, absentCb);
+      }
+    }
+
+    function toggleAbsentInput(uid, absentCb) {
+      const reasonInput = document.getElementById('absent-reason-' + uid);
+      const presentCb = document.querySelector(`input[name="petugas-present-cb"][value="${uid}"]`);
+      if (absentCb.checked) {
+        if (presentCb) presentCb.checked = false;
+        reasonInput.disabled = false;
+        reasonInput.focus();
+      } else {
+        reasonInput.disabled = true;
+        reasonInput.value = '';
+      }
+    }
+
+    // CREATE SHIFT (JANGAN LOADING LAYAR PENUH, LANGSUNG UPDATE LOKAL)
+    async function submitShiftForm(e) {
+      e.preventDefault();
+
+      const reguList = Array.from(document.querySelectorAll('input[name="shift-regu-cb"]:checked')).map(c => c.value);
+      if (reguList.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Peringatan',
+          text: 'Pilih minimal 1 regu.',
+          confirmButtonColor: '#f59e0b'
+        });
+        return;
+      }
+
+      const attendance = [];
+      const list = (usersList && usersList.length > 0) ? usersList : [currentUser];
+      list.forEach(u => {
+        const presentCb = document.querySelector(`input[name="petugas-present-cb"][value="${u.id}"]`);
+        const absentCb = document.getElementById('absent-cb-' + u.id);
+        const reasonInput = document.getElementById('absent-reason-' + u.id);
+
+        if (presentCb && (presentCb.checked || (absentCb && absentCb.checked))) {
+          attendance.push({
+            user_id: u.id,
+            nama_lengkap: u.nama_lengkap,
+            tidak_hadir: absentCb ? absentCb.checked : false,
+            alasan: (absentCb && absentCb.checked) ? reasonInput.value : ''
+          });
+        }
+      });
+
+      const shiftNama = document.getElementById('shift-nama').value;
+      const shiftJenis = document.getElementById('shift-jenis').value;
+      const shiftWaktu = document.getElementById('shift-waktu').value;
+      const eqData = {
+        kendaraan: document.getElementById('eq-kendaraan').value,
+        hp_apkt: document.getElementById('eq-hp').value,
+        toolkit: document.getElementById('eq-toolkit').value,
+        stick_20kv: document.getElementById('eq-stick').value,
+        senter: document.getElementById('eq-senter').value,
+        radio_gasap: document.getElementById('eq-radio').value
+      };
+      const txData = {
+        mcb: document.getElementById('tx-mcb').value,
+        kwh_used: document.getElementById('tx-kwh-used').value,
+        kwh_rem: document.getElementById('tx-kwh-rem').value,
+        gangguan_belum_selesai: document.getElementById('tx-gangguan').value,
+        pelanggan_nyala: document.getElementById('tx-pelanggan').value,
+        wo: document.getElementById('tx-wo').value,
+        p0: document.getElementById('tx-p0').value
+      };
+
+      const payload = {
+        nama_serah_terima: shiftNama,
+        jenis_shift: shiftJenis,
+        regu_list: reguList,
+        waktu_shift: shiftWaktu,
+        petugas_attendance: attendance,
+        peralatan_kondisi: eqData,
+        transaksi_gangguan: txData
+      };
+
+      // Indikator tombol simpan - TIDAK menampilkan overlay loading global
+      const submitBtn = document.getElementById('btn-submit-shift');
+      const originalBtnHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <span class="inline-flex items-center space-x-1.5">
+          <svg class="animate-spin h-4 w-4 text-slate-900 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span>Menyimpan...</span>
+        </span>
+      `;
+
+      try {
+        let res = await callBackend('createShift', { sessionToken: currentUser.token, data: payload });
+        if (res.success) {
+          // Prepend ke data lokal agar langsung muncul di tabel tanpa memuat ulang server
+          const newShiftRecord = {
+            id: 'SFT' + Date.now(),
+            nama_serah_terima: shiftNama,
+            regu_list: reguList.join(', '),
+            waktu_shift: shiftWaktu,
+            jenis_shift: shiftJenis,
+            petugas_attendance: attendance,
+            peralatan_kondisi: eqData,
+            transaksi_gangguan: txData,
+            created_by: currentUser.nama_lengkap || currentUser.username,
+            created_at: new Date().toISOString()
+          };
+          shiftsData.unshift(newShiftRecord);
+
+          // Update UI tabel shift
+          renderShiftsUI();
+
+          // Update statistik dashboard
+          if (dashboardStats) {
+            dashboardStats.totalShifts = (dashboardStats.totalShifts || 0) + 1;
+            dashboardStats.pendingIssues = Number(txData.gangguan_belum_selesai || 0);
+            renderDashboardUI();
+          }
+
+          // Tutup modal dan bersihkan form
+          closeModal('modal-shift');
+          document.getElementById('shift-nama').value = '';
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Serah terima shift berhasil disimpan!',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menyimpan',
+            text: res.error || 'Terjadi kesalahan pada server.',
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message || 'Gagal menyimpan shift.',
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+      }
+    }
+
+    // INVENTORY MODULE
+    function renderInventoryUI() {
+      const container = document.getElementById('inventory-grid-container');
+      container.innerHTML = '';
+
+      if (inventoryData && inventoryData.length > 0) {
+        inventoryData.forEach(cat => {
+          let itemsHtml = '';
+          (cat.items || []).forEach(item => {
+            itemsHtml += `
+              <div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl hover:border-amber-400 transition">
+                <span class="font-semibold text-slate-700 text-sm">${item.nama_sub_item}</span>
+                <div class="flex items-center space-x-2">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-bold ${item.stok <= 2 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-800'}">
+                    Stok: ${item.stok}
+                  </span>
+                  <button onclick="quickEditStock('${item.id}', ${item.stok})" class="p-1.5 text-slate-400 hover:text-amber-600 active:bg-slate-200 rounded-lg" title="Quick Edit Stok">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+
+          container.innerHTML += `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="bg-slate-900 px-4 sm:px-5 py-3 text-white flex items-center justify-between">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                  <i data-lucide="folder" class="w-5 h-5 text-amber-400"></i>
+                  <span>[${cat.nama_kategori}]</span>
+                </h3>
+                <span class="text-xs text-slate-400">${(cat.items || []).length} Sub-item</span>
+              </div>
+              <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                ${itemsHtml || '<p class="text-xs text-slate-400 col-span-full">Belum ada sub-item.</p>'}
+              </div>
+            </div>
+          `;
+        });
+        lucide.createIcons();
+      } else {
+        container.innerHTML = `
+          <div class="bg-white p-8 sm:p-12 text-center rounded-2xl border border-slate-200 text-slate-400">
+            <i data-lucide="boxes" class="w-12 h-12 mx-auto mb-2 stroke-1"></i>
+            <p class="text-base font-medium">Inventaris Masih Kosong</p>
+            <p class="text-xs mt-1">Klik "+ Kategori / Sub-Item" untuk menambahkan data.</p>
+          </div>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    async function quickEditStock(itemId, currentStock) {
+      const { value: newStockStr } = await Swal.fire({
+        title: 'Quick Edit Stok',
+        text: 'Masukkan jumlah stok baru:',
+        input: 'number',
+        inputValue: currentStock,
+        inputAttributes: { min: 0, step: 1 },
+        showCancelButton: true,
+        confirmButtonText: 'Simpan',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#64748b',
+        inputValidator: (value) => {
+          if (value === '' || isNaN(value) || Number(value) < 0) {
+            return 'Jumlah stok harus berupa angka valid (minimal 0)!';
+          }
+        }
+      });
+
+      if (newStockStr === undefined) return;
+      const newStock = parseInt(newStockStr, 10);
+
+      showLoading('Memperbarui Stok...');
+      try {
+        let res = await callBackend('quickUpdateStock', {
+          sessionToken: currentUser.token,
+          itemId: itemId,
+          newStock: newStock,
+          reason: "Quick Edit Stok dari Tabel Inventaris"
+        });
+        if (res.success) {
+          // Perbarui data lokal
+          for (const cat of inventoryData) {
+            for (const item of cat.items) {
+              if (item.id === itemId) {
+                item.stok = newStock;
+              }
+            }
+          }
+          renderInventoryUI();
+
+          // Perbarui hitungan low stock di dashboard
+          let lowCount = 0;
+          inventoryData.forEach(c => c.items.forEach(i => { if (i.stok <= 2) lowCount++; }));
+          if (dashboardStats) {
+            dashboardStats.lowStockCount = lowCount;
+            document.getElementById('dash-low-stock').innerText = lowCount;
+          }
+          stockLogsData = null; // Invalidate riwayat mutasi agar diperbarui saat dibuka
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Stok berhasil diperbarui!',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: res.error || 'Terjadi kesalahan.',
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (e) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: e.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function openCategoryModal() {
+      document.getElementById('cat-name').value = '';
+      document.getElementById('subitem-rows-container').innerHTML = '';
+      addSubItemRow();
+      document.getElementById('modal-category').classList.remove('hidden');
+    }
+
+    function addSubItemRow() {
+      const container = document.getElementById('subitem-rows-container');
+      container.innerHTML += `
+        <div class="flex items-center space-x-2">
+          <input type="text" name="sub-name" placeholder="Nama Sub-item" required class="flex-1 px-3 py-2 border rounded-xl text-base sm:text-sm">
+          <input type="number" name="sub-stok" placeholder="Stok" value="0" min="0" required class="w-20 px-3 py-2 border rounded-xl text-base sm:text-sm">
+          <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    async function submitCategoryForm(e) {
+      e.preventDefault();
+      const catName = document.getElementById('cat-name').value;
+      const subNames = Array.from(document.querySelectorAll('input[name="sub-name"]')).map(i => i.value);
+      const subStoks = Array.from(document.querySelectorAll('input[name="sub-stok"]')).map(i => i.value);
+
+      const items = subNames.map((name, idx) => ({
+        nama_sub_item: name,
+        stok: subStoks[idx] || 0
+      }));
+
+      showLoading('Menyimpan Inventaris...');
+      try {
+        let res = await callBackend('saveCategoryWithItems', {
+          sessionToken: currentUser.token,
+          data: { nama_kategori: catName, items: items }
+        });
+        if (res.success) {
+          closeModal('modal-category');
+          // Ambil ulang data inventaris untuk id baru dari spreadsheet
+          let invRes = await callBackend('getInventory', { sessionToken: currentUser.token });
+          if (invRes.success) {
+            inventoryData = invRes.data;
+            renderInventoryUI();
+            let totalItm = 0;
+            let lowCount = 0;
+            inventoryData.forEach(c => c.items.forEach(i => {
+              totalItm++;
+              if (i.stok <= 2) lowCount++;
+            }));
+            if (dashboardStats) {
+              dashboardStats.totalItems = totalItm;
+              dashboardStats.lowStockCount = lowCount;
+              document.getElementById('dash-total-items').innerText = totalItm;
+              document.getElementById('dash-low-stock').innerText = lowCount;
+            }
+          }
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Kategori & sub-item berhasil disimpan!',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: res.error,
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function openMutateModal() {
+      const select = document.getElementById('mutate-item-id');
+      select.innerHTML = '';
+
+      if (!inventoryData || inventoryData.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Perhatian',
+          text: 'Data inventaris kosong.',
+          confirmButtonColor: '#f59e0b'
+        });
+        return;
+      }
+
+      inventoryData.forEach(cat => {
+        (cat.items || []).forEach(item => {
+          select.innerHTML += `<option value="${item.id}">[${cat.nama_kategori}] ${item.nama_sub_item} (Stok: ${item.stok})</option>`;
+        });
+      });
+
+      document.getElementById('modal-mutate').classList.remove('hidden');
+    }
+
+    async function submitMutateForm(e) {
+      e.preventDefault();
+      const itemId = document.getElementById('mutate-item-id').value;
+      const type = document.getElementById('mutate-type').value;
+      const qty = Number(document.getElementById('mutate-qty').value);
+      const reason = document.getElementById('mutate-reason').value;
+
+      showLoading('Memproses Mutasi Stok...');
+      try {
+        let res = await callBackend('mutateStock', {
+          sessionToken: currentUser.token,
+          data: { itemId: itemId, jenis_mutasi: type, jumlah: qty, keterangan: reason }
+        });
+        if (res.success) {
+          closeModal('modal-mutate');
+          // Perbarui data lokal
+          for (const cat of inventoryData) {
+            for (const item of cat.items) {
+              if (item.id === itemId) {
+                if (type === 'Tambah') {
+                  item.stok += qty;
+                } else {
+                  item.stok = Math.max(0, item.stok - qty);
+                }
+              }
+            }
+          }
+          renderInventoryUI();
+
+          let lowCount = 0;
+          inventoryData.forEach(c => c.items.forEach(i => { if (i.stok <= 2) lowCount++; }));
+          if (dashboardStats) {
+            dashboardStats.lowStockCount = lowCount;
+            document.getElementById('dash-low-stock').innerText = lowCount;
+          }
+          stockLogsData = null; // Invalidate riwayat mutasi agar dimuat ulang saat dibuka
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Mutasi stok berhasil diproses!',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: res.error,
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // STOCK LOGS MODULE (HANYA DIAMBIL KETIKA MENU DIAKSES, LOADING INLINE DI TABEL)
+    async function loadStockLogs() {
+      const tbody = document.getElementById('stock-logs-table-body');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="p-8 text-center text-slate-500">
+            <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-amber-500 border-t-transparent mb-2"></div>
+            <p class="text-xs font-semibold">Mengambil Riwayat Mutasi Stok...</p>
+          </td>
+        </tr>
+      `;
+
+      if (currentUser.role === 'Petugas') {
+        document.getElementById('stock-log-desc').innerText = "Menampilkan riwayat mutasi stok khusus untuk aktivitas Anda.";
+      }
+
+      try {
+        let res = await callBackend('getStockLogs', { sessionToken: currentUser.token });
+        if (res.success && res.data && res.data.length > 0) {
+          stockLogsData = res.data;
+          renderStockLogsUI(stockLogsData);
+        } else {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="p-8 text-center text-slate-400">
+                <i data-lucide="history" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
+                <p>Belum ada log mutasi stok terdaftar.</p>
+              </td>
+            </tr>
+          `;
+          lucide.createIcons();
+        }
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="p-6 text-center text-rose-500 text-xs">
+              Gagal memuat log mutasi: ${err.message || err}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function renderStockLogsUI(logs) {
+      const tbody = document.getElementById('stock-logs-table-body');
+      tbody.innerHTML = '';
+
+      if (logs && logs.length > 0) {
+        logs.forEach(log => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3.5 sm:p-4 font-mono text-xs whitespace-nowrap">${new Date(log.timestamp).toLocaleString('id-ID')}</td>
+              <td class="p-3.5 sm:p-4 font-semibold text-slate-800">${log.nama_kategori}</td>
+              <td class="p-3.5 sm:p-4 text-xs font-medium">${log.nama_sub_item}</td>
+              <td class="p-3.5 sm:p-4">
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${log.jenis_mutasi.includes('+') || log.jenis_mutasi === 'Tambah' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                  ${log.jenis_mutasi}
+                </span>
+              </td>
+              <td class="p-3.5 sm:p-4 font-bold text-slate-800">${log.jumlah}</td>
+              <td class="p-3.5 sm:p-4 text-xs font-mono whitespace-nowrap">${log.stok_sebelum} &rarr; <span class="font-bold">${log.stok_sesudah}</span></td>
+              <td class="p-3.5 sm:p-4 text-xs text-slate-500">${log.keterangan || '-'}</td>
+              <td class="p-3.5 sm:p-4 text-xs font-semibold text-slate-700">${log.pengubah}</td>
+            </tr>
+          `;
+        });
+      } else {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="p-8 text-center text-slate-400">
+              <i data-lucide="history" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
+              <p>Belum ada log mutasi stok terdaftar.</p>
+            </td>
+          </tr>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    // USERS MODULE (ADMIN ONLY)
+    function renderUsersUI() {
+      const tbody = document.getElementById('users-table-body');
+      tbody.innerHTML = '';
+
+      if (usersList && usersList.length > 0) {
+        usersList.forEach(u => {
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3.5 sm:p-4 font-bold text-slate-800">${u.nama_lengkap}</td>
+              <td class="p-3.5 sm:p-4 font-mono text-xs">${u.username}</td>
+              <td class="p-3.5 sm:p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full">${u.role}</span></td>
+              <td class="p-3.5 sm:p-4">
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${u.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                  ${u.status}
+                </span>
+              </td>
+              <td class="p-3.5 sm:p-4 space-x-2">
+                <button onclick="editUser('${u.id}')" class="p-1.5 text-blue-600 hover:text-blue-800"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                <button onclick="deleteUserPrompt('${u.id}')" class="p-1.5 text-rose-600 hover:text-rose-800"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+              </td>
+            </tr>
+          `;
+        });
+        lucide.createIcons();
+      }
+    }
+
+    function openUserModal() {
+      document.getElementById('modal-user-title').innerText = "Tambah Petugas / User";
+      document.getElementById('user-id').value = '';
+      document.getElementById('user-fullname').value = '';
+      document.getElementById('user-username').value = '';
+      document.getElementById('user-password').value = '';
+      document.getElementById('user-role-select').value = 'Petugas';
+      document.getElementById('user-status-select').value = 'Aktif';
+      document.getElementById('modal-user').classList.remove('hidden');
+    }
+
+    function editUser(userId) {
+      const u = usersList.find(x => x.id === userId);
+      if (!u) return;
+
+      document.getElementById('modal-user-title').innerText = "Edit Petugas / User";
+      document.getElementById('user-id').value = u.id;
+      document.getElementById('user-fullname').value = u.nama_lengkap;
+      document.getElementById('user-username').value = u.username;
+      document.getElementById('user-password').value = '';
+      document.getElementById('user-role-select').value = u.role;
+      document.getElementById('user-status-select').value = u.status;
+      document.getElementById('modal-user').classList.remove('hidden');
+    }
+
+    async function submitUserForm(e) {
+      e.preventDefault();
+      const payload = {
+        id: document.getElementById('user-id').value,
+        nama_lengkap: document.getElementById('user-fullname').value,
+        username: document.getElementById('user-username').value,
+        password: document.getElementById('user-password').value,
+        role: document.getElementById('user-role-select').value,
+        status: document.getElementById('user-status-select').value
+      };
+
+      showLoading('Menyimpan User...');
+      try {
+        let res = await callBackend('saveUser', { sessionToken: currentUser.token, data: payload });
+        if (res.success) {
+          closeModal('modal-user');
+          let uRes = await callBackend('getUsers', { sessionToken: currentUser.token });
+          if (uRes.success) {
+            usersList = uRes.data;
+            renderUsersUI();
+          }
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: res.message || 'Data petugas berhasil disimpan!',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: res.error,
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function deleteUserPrompt(userId) {
+      const result = await Swal.fire({
+        title: 'Konfirmasi Hapus',
+        text: 'Apakah Anda yakin ingin menghapus pengguna ini?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+      });
+      if (!result.isConfirmed) return;
+
+      showLoading('Menerapkan Perubahan...');
+      try {
+        let res = await callBackend('deleteUser', { sessionToken: currentUser.token, userId: userId });
+        if (res.success) {
+          usersList = usersList.filter(u => u.id !== userId);
+          renderUsersUI();
+          Swal.fire({
+            icon: 'success',
+            title: 'Terhapus!',
+            text: 'Pengguna berhasil dihapus.',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menghapus',
+            text: res.error,
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // SETTINGS MODULE
+    function renderTeamsUI() {
+      const container = document.getElementById('teams-list');
+      container.innerHTML = '';
+
+      if (teamsData && teamsData.length > 0) {
+        teamsData.forEach((t) => {
+          container.innerHTML += `
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input type="text" name="team-nama" value="${t.nama_regu}" placeholder="Nama Regu" required class="flex-1 px-3.5 py-2 border rounded-xl text-base sm:text-sm">
+              <input type="text" name="team-ket" value="${t.keterangan || ''}" placeholder="Keterangan / Area" class="flex-1 px-3.5 py-2 border rounded-xl text-base sm:text-sm">
+              <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 p-2 self-end sm:self-auto"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+          `;
+        });
+        lucide.createIcons();
+      }
+    }
+
+    function addTeamRow() {
+      const container = document.getElementById('teams-list');
+      container.innerHTML += `
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <input type="text" name="team-nama" placeholder="Nama Regu" required class="flex-1 px-3.5 py-2 border rounded-xl text-base sm:text-sm">
+          <input type="text" name="team-ket" placeholder="Keterangan / Area" class="flex-1 px-3.5 py-2 border rounded-xl text-base sm:text-sm">
+          <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 p-2 self-end sm:self-auto"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    async function saveTeamsData() {
+      const namaInputs = Array.from(document.querySelectorAll('input[name="team-nama"]')).map(i => i.value);
+      const ketInputs = Array.from(document.querySelectorAll('input[name="team-ket"]')).map(i => i.value);
+
+      const teams = namaInputs.map((nama, idx) => ({
+        nama_regu: nama,
+        keterangan: ketInputs[idx] || ''
+      }));
+
+      showLoading('Menyimpan Master Regu...');
+      try {
+        let res = await callBackend('saveTeams', { sessionToken: currentUser.token, teams: teams });
+        if (res.success) {
+          teamsData = teams;
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Master Data Regu Berhasil Disimpan!',
+            confirmButtonColor: '#f59e0b'
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: res.error,
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function handleChangePassword(e) {
+      e.preventDefault();
+      const oldP = document.getElementById('pass-old').value;
+      const newP = document.getElementById('pass-new').value;
+
+      showLoading('Memperbarui Password...');
+      try {
+        let res = await callBackend('changePassword', {
+          sessionToken: currentUser.token,
+          oldPassword: oldP,
+          newPassword: newP
+        });
+        if (res.success) {
+          document.getElementById('pass-old').value = '';
+          document.getElementById('pass-new').value = '';
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Password berhasil diubah!',
+            confirmButtonColor: '#f59e0b'
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: res.error,
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // UTILS
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
