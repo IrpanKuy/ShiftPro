@@ -61,7 +61,7 @@
   <!-- HYBRID DEPLOY GAS_URL CONFIGURATION                                           -->
   <!-- ============================================================================== -->
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwSWTuWPx_g2j043rX6tRWKvWV42ErAUx0Lwb8WMNS0zevHWhqSgtBI3maYM_rnd6pA/exec"; 
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwJKdvGrisuaIvibwObFGcU5iIixln6URnsTB-ZgyYjk1RM3z0lfQnJqqupsGWj_eMrTQ/exec"; 
   </script>
 
   <!-- Global Loading Overlay -->
@@ -415,11 +415,11 @@
 
   <!-- ================= RESPONSIVE MODALS ================= -->
 
-  <!-- Shift Input Modal -->
+  <!-- Shift Input / Edit Modal -->
   <div id="modal-shift" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
       <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
-        <h3 class="font-bold text-base sm:text-lg flex items-center space-x-2">
+        <h3 id="modal-shift-title" class="font-bold text-base sm:text-lg flex items-center space-x-2">
           <i data-lucide="clipboard-check" class="w-5 h-5 text-amber-400"></i>
           <span>Form Serah Terima Shift & Inventaris</span>
         </h3>
@@ -687,6 +687,7 @@
     let inventoryConfigData = [];
     let teamsData = [];
     let usersList = [];
+    let editingShiftId = null; // ID shift yang sedang diedit (null = mode tambah baru)
 
     // Override alert bawaan browser
     window.alert = function(msg) {
@@ -977,7 +978,7 @@
       }).filter(Boolean).join(', ') || '-';
     }
 
-    // SHIFT MODULE (PETUGAS HANYA DAPAT MELIHAT DATA BUATAN SENDIRI, ADMIN MELIHAT SEMUA)
+    // SHIFT MODULE (DENGAN FITUR EDIT & HAPUS UNTUK ADMIN)
     function renderShiftsUI() {
       const tbody = document.getElementById('shift-table-body');
       tbody.innerHTML = '';
@@ -999,6 +1000,29 @@
           const inList = formatPetugasList(s.petugas_in);
           const outList = formatPetugasList(s.petugas_out);
 
+          let actionButtonsHtml = '';
+          if (currentUser && currentUser.role === 'Admin') {
+            actionButtonsHtml = `
+              <div class="flex items-center justify-center space-x-1.5">
+                <button onclick="viewShiftDetail('${s.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg shadow-sm" title="Lihat Detail">
+                  Detail
+                </button>
+                <button onclick="editShiftPrompt('${s.id}')" class="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg" title="Edit Shift">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteShiftPrompt('${s.id}')" class="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg" title="Hapus Shift">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            `;
+          } else {
+            actionButtonsHtml = `
+              <button onclick="viewShiftDetail('${s.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg shadow-sm">
+                Lihat Detail
+              </button>
+            `;
+          }
+
           tbody.innerHTML += `
             <tr class="hover:bg-slate-50 transition">
               <td class="p-3.5 sm:p-4 font-mono text-xs whitespace-nowrap">${new Date(s.waktu_shift).toLocaleString('id-ID')}</td>
@@ -1009,13 +1033,12 @@
               <td class="p-3.5 sm:p-4 text-xs">${outList}</td>
               <td class="p-3.5 sm:p-4 text-xs text-slate-500">${s.created_by}</td>
               <td class="p-3.5 sm:p-4 text-center">
-                <button onclick="viewShiftDetail('${s.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg shadow-sm">
-                  Lihat Detail
-                </button>
+                ${actionButtonsHtml}
               </td>
             </tr>
           `;
         });
+        lucide.createIcons();
       } else {
         tbody.innerHTML = `
           <tr>
@@ -1037,6 +1060,15 @@
     }
 
     function openShiftModal() {
+      editingShiftId = null;
+      document.getElementById('modal-shift-title').innerHTML = `
+        <i data-lucide="clipboard-check" class="w-5 h-5 text-amber-400"></i>
+        <span>Form Serah Terima Shift & Inventaris</span>
+      `;
+      document.getElementById('btn-submit-shift').innerText = "Simpan Shift";
+
+      document.getElementById('shift-nama').value = '';
+      
       // 1. Render Master Regu Checkboxes
       const reguContainer = document.getElementById('shift-regu-container');
       reguContainer.innerHTML = '';
@@ -1049,18 +1081,17 @@
         `;
       });
 
-      // 2. Render Dynamic Petugas In & Out Text Fields (With Tidak Hadir Checkbox & Alasan)
+      // 2. Render Dynamic Petugas In & Out Text Fields
       const inContainer = document.getElementById('petugas-in-container');
       const outContainer = document.getElementById('petugas-out-container');
       inContainer.innerHTML = '';
       outContainer.innerHTML = '';
 
-      // Autofill nama user yang sedang login di baris pertama Petugas Masuk
       const defaultUserNama = currentUser ? currentUser.nama_lengkap : '';
       addPetugasRow('in', { nama: defaultUserNama, tidak_hadir: false, alasan: '' });
       addPetugasRow('out');
 
-      // 3. Render Dynamic Manual Inventory Checklist Fields (Under Peralatan & Kondisi)
+      // 3. Render Dynamic Manual Inventory Checklist Fields
       renderManualInventoryFields();
 
       // 4. Auto fill waktu shift dengan waktu sekarang
@@ -1068,6 +1099,167 @@
 
       document.getElementById('modal-shift').classList.remove('hidden');
       lucide.createIcons();
+    }
+
+    // FITUR EDIT SHIFT (KHUSUS ADMIN)
+    function editShiftPrompt(shiftId) {
+      if (!currentUser || currentUser.role !== 'Admin') return;
+      const s = shiftsData.find(x => x.id === shiftId);
+      if (!s) return;
+
+      editingShiftId = shiftId;
+      document.getElementById('modal-shift-title').innerHTML = `
+        <i data-lucide="edit-3" class="w-5 h-5 text-amber-400"></i>
+        <span>Edit Serah Terima Shift (Admin)</span>
+      `;
+      document.getElementById('btn-submit-shift').innerText = "Perbarui Shift";
+
+      // Fill main fields
+      document.getElementById('shift-nama').value = s.nama_serah_terima || '';
+      document.getElementById('shift-jenis').value = s.jenis_shift || 'Piket Malam ke Pagi';
+      if (s.waktu_shift) {
+        try {
+          const d = new Date(s.waktu_shift);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          document.getElementById('shift-waktu').value = d.toISOString().slice(0, 16);
+        } catch(e) {
+          document.getElementById('shift-waktu').value = getCurrentDateTimeLocal();
+        }
+      }
+
+      // Check regu
+      const reguArray = (s.regu_list || '').split(', ').map(r => r.trim());
+      const reguContainer = document.getElementById('shift-regu-container');
+      reguContainer.innerHTML = '';
+      (teamsData || []).forEach(t => {
+        const checked = reguArray.includes(t.nama_regu) ? 'checked' : '';
+        reguContainer.innerHTML += `
+          <label class="flex items-center space-x-2 text-xs p-1 hover:bg-slate-50 rounded cursor-pointer">
+            <input type="checkbox" name="shift-regu-cb" value="${t.nama_regu}" ${checked} onchange="limitReguSelection(this)" class="rounded text-amber-500 w-4 h-4">
+            <span class="font-medium text-slate-700">${t.nama_regu}</span>
+          </label>
+        `;
+      });
+
+      // Fill Petugas In & Out
+      const inContainer = document.getElementById('petugas-in-container');
+      const outContainer = document.getElementById('petugas-out-container');
+      inContainer.innerHTML = '';
+      outContainer.innerHTML = '';
+
+      if (s.petugas_in && s.petugas_in.length > 0) {
+        s.petugas_in.forEach(p => {
+          if (typeof p === 'string') {
+            addPetugasRow('in', { nama: p, tidak_hadir: false, alasan: '' });
+          } else if (p && typeof p === 'object') {
+            addPetugasRow('in', p);
+          }
+        });
+      } else {
+        addPetugasRow('in');
+      }
+
+      if (s.petugas_out && s.petugas_out.length > 0) {
+        s.petugas_out.forEach(p => {
+          if (typeof p === 'string') {
+            addPetugasRow('out', { nama: p, tidak_hadir: false, alasan: '' });
+          } else if (p && typeof p === 'object') {
+            addPetugasRow('out', p);
+          }
+        });
+      } else {
+        addPetugasRow('out');
+      }
+
+      // Fill Peralatan Kondisi
+      const eq = s.peralatan_kondisi || {};
+      document.getElementById('eq-kendaraan').value = eq.kendaraan || 'Mobil (Baik)';
+      document.getElementById('eq-hp').value = eq.hp_apkt || 'Baik';
+      document.getElementById('eq-toolkit').value = eq.toolkit || 'Ada dan Lengkap';
+      document.getElementById('eq-stick').value = eq.stick_20kv || 'Baik';
+      document.getElementById('eq-senter').value = eq.senter || 'Baik';
+      document.getElementById('eq-radio').value = eq.radio_gasap || 'Baik';
+
+      // Render Manual Inventory Fields & Fill values
+      renderManualInventoryFields();
+      if (s.inventaris_manual && Array.isArray(s.inventaris_manual)) {
+        s.inventaris_manual.forEach(cat => {
+          (cat.items || []).forEach(it => {
+            const inp = document.querySelector(`.inv-manual-input[data-category="${cat.kategori}"][data-item="${it.item}"]`);
+            if (inp) {
+              inp.value = it.qty || 0;
+            }
+          });
+        });
+      }
+
+      // Fill Transaksi & Gangguan
+      const tx = s.transaksi_gangguan || {};
+      document.getElementById('tx-mcb').value = tx.mcb || 0;
+      document.getElementById('tx-kwh-used').value = tx.kwh_used || 0;
+      document.getElementById('tx-kwh-rem').value = tx.kwh_rem || 0;
+      document.getElementById('tx-gangguan').value = tx.gangguan_belum_selesai || 0;
+      document.getElementById('tx-pelanggan').value = tx.pelanggan_nyala || 0;
+      document.getElementById('tx-wo').value = tx.wo || 0;
+      document.getElementById('tx-p0').value = tx.p0 || 0;
+
+      document.getElementById('modal-shift').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    // FITUR HAPUS SHIFT (KHUSUS ADMIN)
+    async function deleteShiftPrompt(shiftId) {
+      if (!currentUser || currentUser.role !== 'Admin') return;
+
+      const result = await Swal.fire({
+        title: 'Hapus Serah Terima Shift?',
+        text: 'Data shift ini akan dihapus secara permanen dari server!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+      });
+      if (!result.isConfirmed) return;
+
+      showLoading('Menghapus Data Shift...');
+      try {
+        let res = await callBackend('deleteShift', { sessionToken: currentUser.token, shiftId: shiftId });
+        if (res.success) {
+          shiftsData = shiftsData.filter(s => s.id !== shiftId);
+          renderShiftsUI();
+
+          if (dashboardStats) {
+            dashboardStats.totalShifts = Math.max(0, (dashboardStats.totalShifts || 1) - 1);
+            renderDashboardUI();
+          }
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Terhapus!',
+            text: 'Data serah terima shift berhasil dihapus.',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menghapus',
+            text: res.error || 'Terjadi kesalahan.',
+            confirmButtonColor: '#f59e0b'
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Kesalahan Sistem',
+          text: err.message,
+          confirmButtonColor: '#f59e0b'
+        });
+      } finally {
+        hideLoading();
+      }
     }
 
     // REVISI PETUGAS ROW WITH CHECKBOX TIDAK HADIR & ALASAN (DISABLED KECUALI TIDAK HADIR AKTIF)
@@ -1288,27 +1480,53 @@
       `;
 
       try {
-        let res = await callBackend('createShift', { sessionToken: currentUser.token, data: payload });
-        if (res.success) {
-          const newShiftRecord = {
-            id: 'SFT' + Date.now(),
-            nama_serah_terima: shiftNama,
-            regu_list: reguList.join(', '),
-            waktu_shift: shiftWaktu,
-            jenis_shift: shiftJenis,
-            petugas_in: petugasInList,
-            petugas_out: petugasOutList,
-            peralatan_kondisi: eqData,
-            inventaris_manual: inventarisManualList,
-            transaksi_gangguan: txData,
-            created_by: currentUser.nama_lengkap || currentUser.username,
-            created_at: new Date().toISOString()
-          };
-          shiftsData.unshift(newShiftRecord);
+        let res;
+        if (editingShiftId) {
+          // UPDATE MODE (ADMIN)
+          res = await callBackend('updateShift', { sessionToken: currentUser.token, shiftId: editingShiftId, data: payload });
+          if (res.success) {
+            const idx = shiftsData.findIndex(x => x.id === editingShiftId);
+            if (idx !== -1) {
+              shiftsData[idx] = {
+                ...shiftsData[idx],
+                nama_serah_terima: shiftNama,
+                regu_list: reguList.join(', '),
+                waktu_shift: shiftWaktu,
+                jenis_shift: shiftJenis,
+                petugas_in: petugasInList,
+                petugas_out: petugasOutList,
+                peralatan_kondisi: eqData,
+                inventaris_manual: inventarisManualList,
+                transaksi_gangguan: txData
+              };
+            }
+          }
+        } else {
+          // CREATE MODE
+          res = await callBackend('createShift', { sessionToken: currentUser.token, data: payload });
+          if (res.success) {
+            const newShiftRecord = {
+              id: 'SFT' + Date.now(),
+              nama_serah_terima: shiftNama,
+              regu_list: reguList.join(', '),
+              waktu_shift: shiftWaktu,
+              jenis_shift: shiftJenis,
+              petugas_in: petugasInList,
+              petugas_out: petugasOutList,
+              peralatan_kondisi: eqData,
+              inventaris_manual: inventarisManualList,
+              transaksi_gangguan: txData,
+              created_by: currentUser.nama_lengkap || currentUser.username,
+              created_at: new Date().toISOString()
+            };
+            shiftsData.unshift(newShiftRecord);
+          }
+        }
 
+        if (res.success) {
           renderShiftsUI();
 
-          if (dashboardStats) {
+          if (dashboardStats && !editingShiftId) {
             dashboardStats.totalShifts = (dashboardStats.totalShifts || 0) + 1;
             dashboardStats.pendingIssues = Number(txData.gangguan_belum_selesai || 0);
             renderDashboardUI();
@@ -1316,11 +1534,12 @@
 
           closeModal('modal-shift');
           document.getElementById('shift-nama').value = '';
+          editingShiftId = null;
 
           Swal.fire({
             icon: 'success',
             title: 'Berhasil!',
-            text: 'Serah terima shift & inventaris manual berhasil disimpan!',
+            text: res.message || 'Data serah terima shift berhasil disimpan!',
             timer: 2000,
             showConfirmButton: false
           });

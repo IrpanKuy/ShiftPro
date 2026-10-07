@@ -242,6 +242,12 @@ function handleApiRequest(action, payload) {
       case "createShift":
         result = createShift(payload.sessionToken, payload.data);
         break;
+      case "updateShift":
+        result = updateShift(payload.sessionToken, payload.shiftId, payload.data);
+        break;
+      case "deleteShift":
+        result = deleteShift(payload.sessionToken, payload.shiftId);
+        break;
       case "getInventoryConfig":
         result = getInventoryConfig(payload.sessionToken);
         break;
@@ -418,7 +424,7 @@ function getShifts(sessionToken) {
       const createdByLower = createdBy.toLowerCase();
 
       if (createdByLower !== matchName && createdByLower !== matchUsername) {
-        continue; // Lewati data milik petugas lain!
+        continue;
       }
     }
     
@@ -497,6 +503,57 @@ function createShift(sessionToken, shiftData) {
     success: true,
     message: "Serah terima shift & data inventaris berhasil disimpan!",
   });
+}
+
+function updateShift(sessionToken, shiftId, shiftData) {
+  const user = validateSession(sessionToken);
+  if (user.role !== "Admin") throw new Error("Akses ditolak: Hanya Admin yang diizinkan merubah data shift.");
+
+  const ss = getDb();
+  const sheet = ss.getSheetByName("Shifts");
+  if (!sheet) throw new Error("Sheet Shifts tidak ditemukan.");
+
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === shiftId) {
+      const rowIndex = i + 1;
+      sheet.getRange(rowIndex, 2).setValue(shiftData.nama_serah_terima);
+      sheet.getRange(rowIndex, 3).setValue((shiftData.regu_list || []).join(", "));
+      sheet.getRange(rowIndex, 4).setValue(shiftData.waktu_shift);
+      sheet.getRange(rowIndex, 5).setValue(shiftData.jenis_shift);
+      sheet.getRange(rowIndex, 6).setValue(JSON.stringify(shiftData.petugas_in || []));
+      sheet.getRange(rowIndex, 7).setValue(JSON.stringify(shiftData.petugas_out || []));
+      sheet.getRange(rowIndex, 8).setValue(JSON.stringify(shiftData.peralatan_kondisi || {}));
+      sheet.getRange(rowIndex, 9).setValue(JSON.stringify(shiftData.inventaris_manual || []));
+      sheet.getRange(rowIndex, 10).setValue(JSON.stringify(shiftData.transaksi_gangguan || {}));
+      return sanitizeDates({
+        success: true,
+        message: "Data serah terima shift berhasil diperbarui!",
+      });
+    }
+  }
+  throw new Error("Data shift tidak ditemukan.");
+}
+
+function deleteShift(sessionToken, shiftId) {
+  const user = validateSession(sessionToken);
+  if (user.role !== "Admin") throw new Error("Akses ditolak: Hanya Admin yang diizinkan menghapus data shift.");
+
+  const ss = getDb();
+  const sheet = ss.getSheetByName("Shifts");
+  if (!sheet) throw new Error("Sheet Shifts tidak ditemukan.");
+
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === shiftId) {
+      sheet.deleteRow(i + 1);
+      return sanitizeDates({
+        success: true,
+        message: "Data serah terima shift berhasil dihapus!",
+      });
+    }
+  }
+  throw new Error("Data shift tidak ditemukan.");
 }
 
 // --- CONFIG CHECKLIST INVENTARIS DINAMIS ---
