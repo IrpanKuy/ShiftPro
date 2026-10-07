@@ -3,61 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Serah Terima Shift & Inventaris Operasional</title>
+  <title>ShiftPro - Serah Terima Shift Operasional</title>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- SweetAlert2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <!-- Text-Security Cross-Browser Masking CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/text-security/dist/text-security.css">
-  <style>
-    /* Custom Scrollbar & Mobile Smooth Touch Scrolling */
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    .touch-scroll { -webkit-overflow-scrolling: touch; }
-    
-    /* Prevent text selection highlight glitches on mobile tap */
-    button, a, input, select { -webkit-tap-highlight-color: transparent; }
 
-    /* Cross-browser Password Dot Masking (Prevents Chrome Password Breach Warning) */
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- SweetAlert2 for modern dialogs -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Chart.js for Dashboard Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* Custom Scrollbar for desktop & touch smooth scroll */
+    .touch-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Masked Password Style */
     .font-masked-password {
-      font-family: 'text-security-disc', -apple-system, BlinkMacSystemFont, sans-serif !important;
       -webkit-text-security: disc !important;
+      text-security: disc !important;
+      font-family: monospace, sans-serif !important;
+    }
+
+    /* Animation utility */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-out forwards;
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased selection:bg-amber-400 selection:text-slate-900">
 
   <!-- ============================================================================== -->
   <!-- HYBRID DEPLOY GAS_URL CONFIGURATION                                           -->
-  <!-- Ubah string GAS_URL dibawah jika dihosting external (e.g. Vercel/Netlify).    -->
-  <!-- Jika dibiarkan kosong "", aplikasi akan otomatis memakai google.script.run    -->
   <!-- ============================================================================== -->
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxOfXOF2kq7hElCrxYiF_OhC4AS4zCJQzL2DiCN25b9-UHDiCnaWM5OkAYJIRnB0RgAFA/exec"; 
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwSWTuWPx_g2j043rX6tRWKvWV42ErAUx0Lwb8WMNS0zevHWhqSgtBI3maYM_rnd6pA/exec"; 
   </script>
 
   <!-- Global Loading Overlay -->
   <div id="global-loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/70 backdrop-blur-sm text-white p-4">
     <div class="animate-spin rounded-full h-12 w-12 border-4 border-amber-400 border-t-transparent mb-4"></div>
-    <p id="loading-msg" class="text-base font-semibold text-center">Memuat Aplikasi...</p>
+    <p id="loading-msg" class="text-base font-semibold text-center">Memuat ShiftPro...</p>
   </div>
 
   <!-- App Wrapper -->
   <div id="app" class="hidden min-h-screen flex flex-col md:flex-row relative">
 
     <!-- Mobile Top Navigation Header -->
-    <header class="md:hidden sticky top-0 z-30 bg-slate-900 text-white flex items-center justify-between px-4 py-3 shadow-lg">
+    <header id="mobile-header" class="md:hidden sticky top-0 z-30 bg-slate-900 text-white flex items-center justify-between px-4 py-3 shadow-lg hidden">
       <div class="flex items-center space-x-2.5">
-        <div class="p-1.5 bg-amber-500 text-slate-900 rounded-lg">
+        <div class="p-1.5 bg-amber-500 text-slate-900 rounded-lg shadow-sm">
           <i data-lucide="zap" class="w-5 h-5"></i>
         </div>
-        <span class="font-bold text-base tracking-wide">Shift & Inv App</span>
+        <span class="font-bold text-base tracking-wide">ShiftPro</span>
       </div>
       <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none">
         <i data-lucide="menu" class="w-6 h-6"></i>
@@ -68,17 +90,17 @@
     <div id="sidebar-backdrop" onclick="closeMobileMenu()" class="fixed inset-0 bg-slate-900/60 z-30 hidden md:hidden transition-opacity"></div>
 
     <!-- Sidebar Navigation Drawer -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 transform -translate-x-full md:translate-x-0 md:static md:inset-auto transition-transform duration-300 ease-in-out flex flex-col p-4 flex-shrink-0 min-h-screen shadow-2xl md:shadow-none">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 transform -translate-x-full md:translate-x-0 md:static md:inset-auto transition-transform duration-300 ease-in-out flex flex-col p-4 flex-shrink-0 min-h-screen shadow-2xl md:shadow-none hidden">
       
       <!-- Drawer Header / Brand -->
       <div class="flex items-center justify-between md:justify-start space-x-3 mb-6 px-2 pt-2 md:pt-0 border-b border-slate-800 pb-4 md:border-b-0 md:pb-0">
         <div class="flex items-center space-x-3">
-          <div class="p-2 bg-amber-500 text-slate-900 rounded-lg shadow-md">
+          <div class="p-2 bg-amber-500 text-slate-900 rounded-xl shadow-md">
             <i data-lucide="zap" class="w-6 h-6"></i>
           </div>
           <div>
-            <h1 class="font-bold text-white text-base leading-tight">Serah Terima Shift</h1>
-            <p class="text-xs text-slate-400">& Inventaris Operasional</p>
+            <h1 class="font-extrabold text-white text-lg tracking-wide leading-tight">ShiftPro</h1>
+            <p class="text-xs text-amber-400 font-medium">Serah Terima Operasional</p>
           </div>
         </div>
         <button onclick="closeMobileMenu()" class="md:hidden text-slate-400 hover:text-white p-1">
@@ -88,24 +110,16 @@
 
       <!-- Navigation Links -->
       <nav class="space-y-1.5 flex-1">
+        <!-- Dashboard Menu (Hidden for role Petugas) -->
         <button onclick="navTo('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
           <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
           <span>Dashboard</span>
         </button>
 
+        <!-- Serah Terima Shift Menu (Always visible) -->
         <button onclick="navTo('shift')" id="nav-shift" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
           <i data-lucide="clipboard-check" class="w-5 h-5"></i>
           <span>Serah Terima Shift</span>
-        </button>
-
-        <button onclick="navTo('inventory')" id="nav-inventory" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
-          <i data-lucide="boxes" class="w-5 h-5"></i>
-          <span>Inventaris Operasional</span>
-        </button>
-
-        <button onclick="navTo('stock-logs')" id="nav-stock-logs" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
-          <i data-lucide="history" class="w-5 h-5"></i>
-          <span>Riwayat Mutasi Stok</span>
         </button>
 
         <!-- Admin Only Menu -->
@@ -114,29 +128,37 @@
           
           <button onclick="navTo('users')" id="nav-users" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
             <i data-lucide="users" class="w-5 h-5"></i>
-            <span>Kelola Petugas</span>
+            <span>Manajemen Petugas</span>
           </button>
 
           <button onclick="navTo('settings')" id="nav-settings" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
-            <i data-lucide="settings" class="w-5 h-5"></i>
-            <span>Pengaturan</span>
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span>Pengaturan Sistem</span>
+          </button>
+        </div>
+
+        <!-- Petugas Settings Menu (Hidden for Petugas as per requirement: only 1 menu for Petugas) -->
+        <div id="petugas-settings-menu" class="hidden pt-4 border-t border-slate-800 mt-4 space-y-1.5">
+          <button onclick="navTo('settings')" id="nav-settings-petugas" class="nav-item w-full flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 hover:text-white transition">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+            <span>Ganti Password</span>
           </button>
         </div>
       </nav>
 
       <!-- User Profile Badge & Logout -->
       <div class="pt-4 border-t border-slate-800 mt-auto">
-        <div class="flex items-center justify-between px-2">
-          <div class="flex items-center space-x-3 overflow-hidden">
-            <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-amber-400 flex-shrink-0" id="user-avatar">
+        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-800/60 border border-slate-800">
+          <div class="flex items-center space-x-3 min-w-0">
+            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 border border-amber-400 flex items-center justify-center font-bold flex-shrink-0" id="user-avatar">
               U
             </div>
             <div class="truncate">
               <p class="text-sm font-semibold text-white truncate" id="user-name">User Name</p>
-              <p class="text-xs text-slate-400 capitalize" id="user-role">Role</p>
+              <p class="text-xs text-amber-400 font-medium capitalize" id="user-role">Role</p>
             </div>
           </div>
-          <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-800" title="Keluar">
+          <button onclick="logout()" class="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-800 transition" title="Keluar">
             <i data-lucide="log-out" class="w-5 h-5"></i>
           </button>
         </div>
@@ -150,11 +172,11 @@
       <section id="view-login" class="hidden min-h-[80vh] flex items-center justify-center p-2">
         <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
           <div class="text-center mb-6">
-            <div class="inline-flex p-3.5 bg-amber-100 text-amber-600 rounded-2xl mb-3 shadow-inner">
-              <i data-lucide="zap" class="w-8 h-8"></i>
+            <div class="inline-flex p-4 bg-amber-100 text-amber-600 rounded-2xl mb-3 shadow-inner">
+              <i data-lucide="zap" class="w-10 h-10"></i>
             </div>
-            <h2 class="text-2xl font-bold text-slate-800">Masuk Aplikasi</h2>
-            <p class="text-sm text-slate-500 mt-1">Serah Terima Shift & Inventaris Operasional</p>
+            <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">ShiftPro</h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">Sistem Serah Terima Shift & Inventaris Operasional</p>
           </div>
 
           <form id="login-form" onsubmit="handleLogin(event)" autocomplete="off" class="space-y-4 sm:space-y-5">
@@ -171,7 +193,7 @@
                 </button>
               </div>
             </div>
-            <div id="login-error" class="hidden p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200"></div>
+            <div id="login-error" class="hidden p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200 font-medium"></div>
             <button type="submit" id="btn-login-submit" class="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold py-3.5 px-4 rounded-xl shadow-md transition duration-200 text-base">
               Masuk Aplikasi
             </button>
@@ -179,12 +201,12 @@
         </div>
       </section>
 
-      <!-- Dashboard View -->
+      <!-- Dashboard View (Admin Only) -->
       <section id="view-dashboard" class="view-panel hidden space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Overview Dashboard</h2>
-            <p class="text-xs sm:text-sm text-slate-500">Ringkasan operasional shift dan kondisi inventaris saat ini.</p>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Overview Dashboard ShiftPro</h2>
+            <p class="text-xs sm:text-sm text-slate-500">Ringkasan aktivitas serah terima shift dan status operasional.</p>
           </div>
           <button onclick="refreshAllData()" class="self-start sm:self-auto flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl shadow-sm transition active:scale-95" title="Sinkronkan data dengan server">
             <i data-lucide="refresh-cw" class="w-4 h-4 text-amber-500"></i>
@@ -192,51 +214,63 @@
           </button>
         </div>
 
-        <!-- Stat Cards Grid -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <div class="p-3 bg-blue-100 text-blue-600 rounded-xl w-fit"><i data-lucide="clipboard-list" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
+        <!-- Metric Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-amber-100 text-amber-600 rounded-xl">
+              <i data-lucide="clipboard-check" class="w-7 h-7"></i>
+            </div>
             <div>
-              <p class="text-xs text-slate-500 font-medium">Total Shift</p>
-              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-total-shifts">0</h3>
+              <p class="text-xs font-semibold uppercase text-slate-500">Total Shift Dicatat</p>
+              <h3 class="text-2xl font-black text-slate-800" id="dash-total-shifts">0</h3>
             </div>
           </div>
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <div class="p-3 bg-emerald-100 text-emerald-600 rounded-xl w-fit"><i data-lucide="package" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-blue-100 text-blue-600 rounded-xl">
+              <i data-lucide="users" class="w-7 h-7"></i>
+            </div>
             <div>
-              <p class="text-xs text-slate-500 font-medium">Sub-Item Stok</p>
-              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-total-items">0</h3>
+              <p class="text-xs font-semibold uppercase text-slate-500">Master Regu Terdaftar</p>
+              <h3 class="text-2xl font-black text-slate-800" id="dash-total-teams">0</h3>
             </div>
           </div>
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <div class="p-3 bg-rose-100 text-rose-600 rounded-xl w-fit"><i data-lucide="alert-triangle" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
-            <div>
-              <p class="text-xs text-slate-500 font-medium">Stok Menipis</p>
-              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-low-stock">0</h3>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-rose-100 text-rose-600 rounded-xl">
+              <i data-lucide="alert-circle" class="w-7 h-7"></i>
             </div>
-          </div>
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <div class="p-3 bg-amber-100 text-amber-600 rounded-xl w-fit"><i data-lucide="alert-circle" class="w-5 sm:w-6 h-5 sm:h-6"></i></div>
             <div>
-              <p class="text-xs text-slate-500 font-medium">Gangguan Pending</p>
-              <h3 class="text-xl sm:text-2xl font-bold text-slate-800" id="dash-pending-issues">0</h3>
+              <p class="text-xs font-semibold uppercase text-slate-500">Gangguan Pending Last Shift</p>
+              <h3 class="text-2xl font-black text-slate-800" id="dash-pending-issues">0</h3>
             </div>
           </div>
         </div>
 
-        <!-- Visual Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 class="text-sm sm:text-base font-semibold text-slate-800 mb-4">Status Kondisi Peralatan Operasional</h3>
-            <div class="h-56 sm:h-64 flex justify-center">
-              <canvas id="chartEquipment"></canvas>
-            </div>
+        <!-- Recent Shifts & Quick Summary -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
+              <i data-lucide="history" class="w-5 h-5 text-amber-500"></i>
+              <span>Serah Terima Shift Terbaru</span>
+            </h3>
+            <button onclick="navTo('shift')" class="text-xs font-bold text-amber-600 hover:underline">Lihat Semua &rarr;</button>
           </div>
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 class="text-sm sm:text-base font-semibold text-slate-800 mb-4">Metrik Transaksi Operasional Shift Terakhir</h3>
-            <div class="h-56 sm:h-64 flex justify-center">
-              <canvas id="chartTransactions"></canvas>
-            </div>
+          <div class="overflow-x-auto touch-scroll">
+            <table class="w-full text-left text-sm min-w-[600px]">
+              <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-3">Waktu</th>
+                  <th class="p-3">Nama Shift</th>
+                  <th class="p-3">Regu</th>
+                  <th class="p-3">Petugas In</th>
+                  <th class="p-3">Petugas Out</th>
+                </tr>
+              </thead>
+              <tbody id="dash-recent-shifts-body" class="divide-y divide-slate-100">
+                <!-- Dynamic -->
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -246,86 +280,31 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Serah Terima Shift Operasional</h2>
-            <p class="text-xs sm:text-sm text-slate-500">Kelola dan input log serah terima tugas operasional.</p>
+            <p class="text-xs sm:text-sm text-slate-500">Pencatatan kondisi alat, gangguan, petugas In/Out & sisa inventaris.</p>
           </div>
           <button onclick="openShiftModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold px-4 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition">
             <i data-lucide="plus" class="w-5 h-5"></i>
-            <span>+ Input Shift Baru</span>
+            <span>+ Buat Serah Terima Shift</span>
           </button>
         </div>
 
-        <!-- Shift Log Table Container -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="overflow-x-auto touch-scroll">
-            <table class="w-full text-left text-sm min-w-[700px]">
+            <table class="w-full text-left text-sm min-w-[850px]">
               <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-semibold border-b border-slate-200">
                 <tr>
-                  <th class="p-3.5 sm:p-4">Tanggal & Waktu</th>
+                  <th class="p-3.5 sm:p-4">Waktu Shift</th>
                   <th class="p-3.5 sm:p-4">Nama Serah Terima</th>
                   <th class="p-3.5 sm:p-4">Regu</th>
                   <th class="p-3.5 sm:p-4">Jenis Shift</th>
-                  <th class="p-3.5 sm:p-4">Petugas Hadir</th>
-                  <th class="p-3.5 sm:p-4">Petugas Absen</th>
+                  <th class="p-3.5 sm:p-4">Petugas Masuk (In)</th>
+                  <th class="p-3.5 sm:p-4">Petugas Keluar (Out)</th>
                   <th class="p-3.5 sm:p-4">Dibuat Oleh</th>
+                  <th class="p-3.5 sm:p-4 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody id="shift-table-body" class="divide-y divide-slate-100">
                 <!-- Filled dynamically -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- Inventory View -->
-      <section id="view-inventory" class="view-panel hidden space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Katalog Inventaris & Stok</h2>
-            <p class="text-xs sm:text-sm text-slate-500">Manajemen stok barang (Parent Category - Child Sub-Items).</p>
-          </div>
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <button onclick="openMutateModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-4 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition">
-              <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
-              <span>Form Mutasi Stok</span>
-            </button>
-            <button onclick="openCategoryModal()" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold px-4 py-3 rounded-xl flex items-center justify-center space-x-2 shadow-sm transition">
-              <i data-lucide="plus" class="w-4 h-4"></i>
-              <span>+ Kategori / Sub-Item</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Category Grid Wrapper -->
-        <div id="inventory-grid-container" class="space-y-4 sm:space-y-6">
-          <!-- Filled dynamically -->
-        </div>
-      </section>
-
-      <!-- Stock Logs View -->
-      <section id="view-stock-logs" class="view-panel hidden space-y-6">
-        <div>
-          <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Riwayat Mutasi & Audit Log Stok</h2>
-          <p class="text-xs sm:text-sm text-slate-500" id="stock-log-desc">Mencatat seluruh aktivitas perubahan stok inventaris.</p>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="overflow-x-auto touch-scroll">
-            <table class="w-full text-left text-sm min-w-[750px]">
-              <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-semibold border-b border-slate-200">
-                <tr>
-                  <th class="p-3.5 sm:p-4">Waktu</th>
-                  <th class="p-3.5 sm:p-4">Kategori</th>
-                  <th class="p-3.5 sm:p-4">Sub-Item</th>
-                  <th class="p-3.5 sm:p-4">Jenis Perubahan</th>
-                  <th class="p-3.5 sm:p-4">Jumlah</th>
-                  <th class="p-3.5 sm:p-4">Sebelum -> Sesudah</th>
-                  <th class="p-3.5 sm:p-4">Keterangan</th>
-                  <th class="p-3.5 sm:p-4">Pengubah</th>
-                </tr>
-              </thead>
-              <tbody id="stock-logs-table-body" class="divide-y divide-slate-100">
-                <!-- Data loaded dynamically -->
               </tbody>
             </table>
           </div>
@@ -369,11 +348,34 @@
       <section id="view-settings" class="view-panel hidden space-y-6 max-w-4xl">
         <div>
           <h2 class="text-xl sm:text-2xl font-bold text-slate-800">Pengaturan Sistem & Profil</h2>
-          <p class="text-xs sm:text-sm text-slate-500">Kelola Master Data Regu dan Kata Sandi Akun.</p>
+          <p class="text-xs sm:text-sm text-slate-500">Kelola Konfigurasi Inventaris Checklist, Master Regu, dan Kata Sandi.</p>
         </div>
 
-        <!-- Master Regu Card -->
-        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <!-- Inventory Checklist Config Card (Admin Only) -->
+        <div id="settings-inv-config-card" class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 hidden">
+          <div class="flex items-center justify-between border-b pb-2">
+            <div>
+              <h3 class="text-base sm:text-lg font-bold text-slate-800">Pengaturan Checklist Inventaris Serah Terima</h3>
+              <p class="text-xs text-slate-500">Atur kategori & sub-kategori/rating (MCB, Fuse link, dll) yang harus diisi petugas saat serah terima.</p>
+            </div>
+            <button onclick="addInventoryCategoryBlock()" class="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-xl shadow-sm">
+              + Tambah Kategori
+            </button>
+          </div>
+
+          <div id="inv-config-builder-container" class="space-y-4">
+            <!-- Dynamic Category Builder Blocks -->
+          </div>
+
+          <div class="pt-2">
+            <button onclick="saveInventoryConfigData()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold text-sm px-5 py-3 rounded-xl shadow-sm">
+              Simpan Pengaturan Inventaris
+            </button>
+          </div>
+        </div>
+
+        <!-- Master Regu Card (Admin Only) -->
+        <div id="settings-teams-card" class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 hidden">
           <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b pb-2">Master Data Regu</h3>
           <div id="teams-list" class="space-y-3">
             <!-- Dynamic list -->
@@ -389,7 +391,7 @@
           </div>
         </div>
 
-        <!-- Change Password Card -->
+        <!-- Change Password Card (All Users) -->
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b pb-2">Ganti Kata Sandi</h3>
           <form onsubmit="handleChangePassword(event)" class="space-y-4 max-w-md">
@@ -417,7 +419,10 @@
   <div id="modal-shift" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
       <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
-        <h3 class="font-bold text-base sm:text-lg">Form Serah Terima Shift</h3>
+        <h3 class="font-bold text-base sm:text-lg flex items-center space-x-2">
+          <i data-lucide="clipboard-check" class="w-5 h-5 text-amber-400"></i>
+          <span>Form Serah Terima Shift & Inventaris</span>
+        </h3>
         <button onclick="closeModal('modal-shift')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
       </div>
       
@@ -439,8 +444,8 @@
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Waktu / Tanggal Shift</label>
-              <input type="datetime-local" id="shift-waktu" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Waktu / Tanggal Shift (Otomatis)</label>
+              <input type="datetime-local" id="shift-waktu" required class="w-full px-3.5 py-2.5 border rounded-xl text-base bg-amber-50/50">
             </div>
             <div class="sm:col-span-2">
               <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Pilih Regu (Maksimal 3)</label>
@@ -450,17 +455,56 @@
             </div>
           </div>
 
-          <!-- Check-in Petugas -->
-          <div class="border-t pt-4">
-            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-2">Petugas Check-In / Check-Out</h4>
-            <div id="shift-petugas-container" class="space-y-2">
-              <!-- Dynamic Petugas list -->
+          <!-- REVISI PETUGAS CHECK-IN & CHECK-OUT (WITH TIDAK HADIR CHECKBOX & ALASAN) -->
+          <div class="border-t pt-4 space-y-4">
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base flex items-center space-x-2">
+              <i data-lucide="user-check" class="w-5 h-5 text-amber-500"></i>
+              <span>Daftar Petugas Check-In / Check-Out</span>
+            </h4>
+
+            <div class="grid grid-cols-1 gap-4">
+              <!-- Petugas Masuk (In) -->
+              <div class="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2.5">
+                <div class="flex items-center justify-between border-b border-emerald-200 pb-2">
+                  <span class="text-xs font-bold uppercase text-emerald-800 flex items-center space-x-1.5">
+                    <i data-lucide="log-in" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Petugas Masuk (Check-In)</span>
+                  </span>
+                  <button type="button" onclick="addPetugasRow('in')" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center space-x-1 bg-emerald-100 px-2.5 py-1 rounded-lg">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Tambah Petugas</span>
+                  </button>
+                </div>
+                <div id="petugas-in-container" class="space-y-2">
+                  <!-- Dynamic text input rows -->
+                </div>
+              </div>
+
+              <!-- Petugas Keluar (Out) -->
+              <div class="p-3.5 bg-rose-50/60 border border-rose-200 rounded-xl space-y-2.5">
+                <div class="flex items-center justify-between border-b border-rose-200 pb-2">
+                  <span class="text-xs font-bold uppercase text-rose-800 flex items-center space-x-1.5">
+                    <i data-lucide="log-out" class="w-4 h-4 text-rose-600"></i>
+                    <span>Petugas Keluar (Check-Out)</span>
+                  </span>
+                  <button type="button" onclick="addPetugasRow('out')" class="text-xs font-bold text-rose-700 hover:text-rose-900 flex items-center space-x-1 bg-rose-100 px-2.5 py-1 rounded-lg">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Tambah Petugas</span>
+                  </button>
+                </div>
+                <div id="petugas-out-container" class="space-y-2">
+                  <!-- Dynamic text input rows -->
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Peralatan Operasional -->
+          <!-- Peralatan & Kondisi Operasional -->
           <div class="border-t pt-4">
-            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-3">Peralatan & Kondisi Operasional</h4>
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-3 flex items-center space-x-2">
+              <i data-lucide="wrench" class="w-5 h-5 text-amber-500"></i>
+              <span>Peralatan & Kondisi Operasional</span>
+            </h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Kendaraan</label>
@@ -508,9 +552,24 @@
             </div>
           </div>
 
+          <!-- DATA INVENTARIS MANUAL DINAMIS (DIBAWAH PERALATAN & KONDISI OPERASIONAL) -->
+          <div class="border-t pt-4">
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-1 flex items-center space-x-2">
+              <i data-lucide="boxes" class="w-5 h-5 text-amber-500"></i>
+              <span>Data Inventaris Manual (Sisa Material)</span>
+            </h4>
+            <p class="text-xs text-slate-500 mb-3">Input sisa MCB, Fuse link, atau material lain saat serah terima shift.</p>
+            <div id="shift-manual-inv-container" class="space-y-4">
+              <!-- Dynamically populated from InventoryConfig -->
+            </div>
+          </div>
+
           <!-- Data Transaksi & Gangguan -->
           <div class="border-t pt-4">
-            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-3">Data Transaksi & Gangguan (Angka)</h4>
+            <h4 class="font-bold text-slate-800 text-sm sm:text-base mb-3 flex items-center space-x-2">
+              <i data-lucide="bar-chart-2" class="w-5 h-5 text-amber-500"></i>
+              <span>Data Transaksi & Gangguan (Angka)</span>
+            </h4>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">MCB Terpakai</label>
@@ -554,76 +613,22 @@
     </div>
   </div>
 
-  <!-- Parent-Child Category Modal -->
-  <div id="modal-category" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col my-auto max-h-[90vh]">
+  <!-- Shift Detail Modal -->
+  <div id="modal-detail-shift" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
       <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
-        <h3 class="font-bold text-base sm:text-lg">Tambah Kategori & Sub-Item</h3>
-        <button onclick="closeModal('modal-category')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+        <h3 class="font-bold text-base sm:text-lg flex items-center space-x-2">
+          <i data-lucide="file-text" class="w-5 h-5 text-amber-400"></i>
+          <span>Rincian Serah Terima Shift</span>
+        </h3>
+        <button onclick="closeModal('modal-detail-shift')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
       </div>
-      <form onsubmit="submitCategoryForm(event)" class="flex flex-col flex-1 overflow-hidden">
-        <div class="p-4 sm:p-6 space-y-4 overflow-y-auto touch-scroll flex-1">
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Nama Kategori (Parent)</label>
-            <input type="text" id="cat-name" required placeholder="Contoh: MCB, Fuse Link, Kabel" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
-          </div>
-          
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-bold uppercase text-slate-700">Sub-Item (Child & Stok Awal)</label>
-              <button type="button" onclick="addSubItemRow()" class="text-xs font-bold text-amber-600 hover:underline">+ Sub-Item</button>
-            </div>
-            <div id="subitem-rows-container" class="space-y-2 max-h-52 overflow-y-auto pr-1">
-              <!-- Dynamic rows -->
-            </div>
-          </div>
-        </div>
-
-        <div class="p-4 bg-slate-50 border-t flex justify-end space-x-3 flex-shrink-0">
-          <button type="button" onclick="closeModal('modal-category')" class="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-semibold text-sm">Batal</button>
-          <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold rounded-xl text-sm">Simpan</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Mutasi Stok Modal -->
-  <div id="modal-mutate" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col my-auto max-h-[90vh]">
-      <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
-        <h3 class="font-bold text-base sm:text-lg">Form Mutasi Stok</h3>
-        <button onclick="closeModal('modal-mutate')" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-6 h-6"></i></button>
+      <div id="modal-detail-content" class="p-4 sm:p-6 overflow-y-auto touch-scroll custom-scrollbar space-y-5 flex-1">
+        <!-- Filled dynamically -->
       </div>
-      <form onsubmit="submitMutateForm(event)" class="flex flex-col flex-1 overflow-hidden">
-        <div class="p-4 sm:p-6 space-y-4 overflow-y-auto touch-scroll flex-1">
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Pilih Item Inventaris</label>
-            <select id="mutate-item-id" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
-              <!-- Filled dynamically -->
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Jenis Mutasi</label>
-            <select id="mutate-type" required class="w-full px-3.5 py-2.5 border rounded-xl text-base">
-              <option value="Tambah">Tambah Stok (+)</option>
-              <option value="Kurang">Kurangi Stok (-)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Jumlah / Qty</label>
-            <input type="number" id="mutate-qty" required min="1" value="1" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Keterangan / Alasan</label>
-            <input type="text" id="mutate-reason" required placeholder="Contoh: Digunakan untuk perbaikan gardu A" class="w-full px-3.5 py-2.5 border rounded-xl text-base">
-          </div>
-        </div>
-
-        <div class="p-4 bg-slate-50 border-t flex justify-end space-x-3 flex-shrink-0">
-          <button type="button" onclick="closeModal('modal-mutate')" class="px-4 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-semibold text-sm">Batal</button>
-          <button type="submit" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-900 font-bold rounded-xl text-sm">Proses Mutasi</button>
-        </div>
-      </form>
+      <div class="p-4 bg-slate-50 border-t flex justify-end flex-shrink-0">
+        <button type="button" onclick="closeModal('modal-detail-shift')" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm rounded-xl">Tutup</button>
+      </div>
     </div>
   </div>
 
@@ -675,18 +680,15 @@
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
-    // State Application (Data disimpan di memori - tidak diambil setiap pindah menu)
+    // State Application
     let currentUser = null;
     let dashboardStats = null;
     let shiftsData = [];
-    let inventoryData = [];
+    let inventoryConfigData = [];
     let teamsData = [];
     let usersList = [];
-    let stockLogsData = null; // Riwayat mutasi: null saat login/refresh, HANYA diambil ketika menu diakses
-    let chartEquipmentInstance = null;
-    let chartTransactionsInstance = null;
 
-    // Larangan Alert Bawaan Browser: Override default window.alert sebagai jaring pengaman
+    // Override alert bawaan browser
     window.alert = function(msg) {
       Swal.fire({
         icon: 'info',
@@ -696,29 +698,34 @@
       });
     };
 
-    // Toggle Tampilan Password Login (Eye Icon)
-    function toggleLoginPasswordVisibility() {
-      const input = document.getElementById('login-password');
-      const icon = document.getElementById('toggle-password-icon');
-      const isMasked = input.classList.contains('font-masked-password');
-      if (isMasked) {
-        input.classList.remove('font-masked-password', 'tracking-wider');
-        icon.setAttribute('data-lucide', 'eye-off');
-      } else {
-        input.classList.add('font-masked-password', 'tracking-wider');
-        icon.setAttribute('data-lucide', 'eye');
-      }
+    // DOM Ready Initialization
+    document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-    }
-
-    // INITIALIZATION
-    window.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
-      initApp();
+      checkAuthSession();
     });
 
-    function showLoading(msg) {
-      document.getElementById('loading-msg').innerText = msg || 'Memuat...';
+    // BACKEND CALL HELPER
+    async function callBackend(action, payload = {}) {
+      if (GAS_URL && GAS_URL.trim() !== "") {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action, payload })
+        });
+        return await response.json();
+      } else {
+        return new Promise((resolve) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(err => resolve({ success: false, error: err.message }))
+            .handleApiRequest(action, payload);
+        });
+      }
+    }
+
+    // UI HELPER
+    function showLoading(msg = 'Memuat...') {
+      document.getElementById('loading-msg').innerText = msg;
       document.getElementById('global-loading').classList.remove('hidden');
     }
 
@@ -726,18 +733,11 @@
       document.getElementById('global-loading').classList.add('hidden');
     }
 
-    // MOBILE DRAWER HANDLERS
     function toggleMobileMenu() {
       const sidebar = document.getElementById('sidebar');
       const backdrop = document.getElementById('sidebar-backdrop');
-      const isOpen = !sidebar.classList.contains('-translate-x-full');
-      
-      if (isOpen) {
-        closeMobileMenu();
-      } else {
-        sidebar.classList.remove('-translate-x-full');
-        backdrop.classList.remove('hidden');
-      }
+      sidebar.classList.toggle('-translate-x-full');
+      backdrop.classList.toggle('hidden');
     }
 
     function closeMobileMenu() {
@@ -747,157 +747,49 @@
       backdrop.classList.add('hidden');
     }
 
-    // HYBRID DEPLOY API CALLER
-    async function callBackend(functionName, payload = {}) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 detik timeout
-
-      try {
-        if (GAS_URL && GAS_URL.trim() !== "") {
-          // HTTP Fetch API (External Deployment Mode)
-          const response = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: functionName, payload: payload }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          return await response.json();
-        } else {
-          // Native GAS Runner Mode
-          return new Promise((resolve, reject) => {
-            if (typeof google === 'undefined' || !google.script || !google.script.run) {
-              reject(new Error("Lingkungan GAS tidak terdeteksi dan GAS_URL belum diatur."));
-              return;
-            }
-            google.script.run
-              .withSuccessHandler((res) => { clearTimeout(timeoutId); resolve(res); })
-              .withFailureHandler((err) => { clearTimeout(timeoutId); reject(err); })
-              [functionName](payload.sessionToken, payload.data || payload);
-          });
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          Swal.fire({
-            icon: 'error',
-            title: 'Koneksi Terputus',
-            text: 'Gagal menghubungkan ke Spreadsheet: Request Timeout (Waktu tunggu habis).',
-            confirmButtonColor: '#f59e0b'
-          });
-        }
-        throw err;
+    function toggleLoginPasswordVisibility() {
+      const passInput = document.getElementById('login-password');
+      const icon = document.getElementById('toggle-password-icon');
+      if (passInput.classList.contains('font-masked-password')) {
+        passInput.classList.remove('font-masked-password');
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        passInput.classList.add('font-masked-password');
+        icon.setAttribute('data-lucide', 'eye');
       }
+      lucide.createIcons();
     }
 
-    // PENGAMBILAN SEMUA DATA AWAL (KECUALI RIWAYAT MUTASI)
-    async function fetchAllInitialData() {
-      try {
-        // Coba endpoint batch getInitialData
-        const res = await callBackend('getInitialData', { sessionToken: currentUser.token });
-        if (res && res.success && res.data) {
-          return res.data;
-        }
-      } catch (err) {
-        // Fallback paralel jika endpoint batch belum tersedia di URL GAS
-      }
-
-      const [resDash, resShifts, resInv, resTeams, resUsers] = await Promise.all([
-        callBackend('getDashboardData', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
-        callBackend('getShifts', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
-        callBackend('getInventory', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
-        callBackend('getTeams', { sessionToken: currentUser.token }).catch(() => ({ success: false })),
-        currentUser.role === 'Admin'
-          ? callBackend('getUsers', { sessionToken: currentUser.token }).catch(() => ({ success: false, data: [currentUser] }))
-          : Promise.resolve({ success: true, data: [currentUser] })
-      ]);
-
-      return {
-        dashboard: resDash.stats || { totalShifts: 0, totalItems: 0, lowStockCount: 0, pendingIssues: 0 },
-        shifts: resShifts.data || [],
-        inventory: resInv.data || [],
-        teams: resTeams.data || [],
-        users: resUsers.data || [currentUser]
-      };
-    }
-
-    async function loadAllInitialData() {
-      try {
-        const initial = await fetchAllInitialData();
-        dashboardStats = initial.dashboard || { totalShifts: 0, totalItems: 0, lowStockCount: 0, pendingIssues: 0 };
-        shiftsData = initial.shifts || [];
-        inventoryData = initial.inventory || [];
-        teamsData = initial.teams || [];
-        usersList = initial.users || [currentUser];
-
-        // Render seluruh tampilan dengan data di memori
-        renderDashboardUI();
-        renderShiftsUI();
-        renderInventoryUI();
-        if (currentUser.role === 'Admin') {
-          renderUsersUI();
-          renderTeamsUI();
-        }
-      } catch (err) {
-        console.error("Gagal memuat data awal:", err);
-        Swal.fire({
-          icon: 'error',
-          title: 'Gagal Memuat Data',
-          text: 'Tidak dapat mengambil data awal: ' + (err.message || err),
-          confirmButtonColor: '#f59e0b'
-        });
-      }
-    }
-
-    // SINKRONISASI MANUAL VIA TOMBOL REFRESH
-    async function refreshAllData() {
-      showLoading('Menyinkronkan Data...');
-      try {
-        await loadAllInitialData();
-        // Jika sedang aktif di tab riwayat mutasi, perbarui juga mutasi
-        const stockLogsView = document.getElementById('view-stock-logs');
-        if (stockLogsView && !stockLogsView.classList.contains('hidden')) {
-          await loadStockLogs();
-        }
-        Swal.fire({
-          icon: 'success',
-          title: 'Data Tersinkron',
-          text: 'Semua data operasional berhasil diperbarui.',
-          timer: 1500,
-          showConfirmButton: false
-        });
-      } finally {
-        hideLoading();
-      }
-    }
-
-    async function initApp() {
+    // AUTHENTICATION & INITIALIZATION
+    async function checkAuthSession() {
       const savedUser = localStorage.getItem('app_user_session');
       if (savedUser) {
         try {
           currentUser = JSON.parse(savedUser);
           setupUserUI();
-          document.getElementById('app').classList.remove('hidden');
-          showLoading('Memuat Data Aplikasi...');
-          await loadAllInitialData();
-          hideLoading();
-          navTo('dashboard');
+          if (currentUser.role === 'Petugas') {
+            navTo('shift');
+          } else {
+            navTo('dashboard');
+          }
+          await fetchInitialData();
         } catch (e) {
           localStorage.removeItem('app_user_session');
           showLoginScreen();
-          hideLoading();
         }
       } else {
         showLoginScreen();
-        hideLoading();
       }
     }
 
     function showLoginScreen() {
       document.getElementById('app').classList.remove('hidden');
       document.getElementById('sidebar').classList.add('hidden');
+      const mobileHeader = document.getElementById('mobile-header');
+      if (mobileHeader) mobileHeader.classList.add('hidden');
       document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
       document.getElementById('view-login').classList.remove('hidden');
+      hideLoading();
     }
 
     function setupUserUI() {
@@ -905,14 +797,27 @@
       document.getElementById('user-role').innerText = currentUser.role;
       document.getElementById('user-avatar').innerText = currentUser.nama_lengkap.charAt(0).toUpperCase();
 
+      const mobileHeader = document.getElementById('mobile-header');
+      if (mobileHeader) mobileHeader.classList.remove('hidden');
+
       if (currentUser.role === 'Admin') {
+        document.getElementById('nav-dashboard').classList.remove('hidden');
         document.getElementById('admin-menu').classList.remove('hidden');
+        document.getElementById('petugas-settings-menu').classList.add('hidden');
+        document.getElementById('settings-inv-config-card').classList.remove('hidden');
+        document.getElementById('settings-teams-card').classList.remove('hidden');
       } else {
+        // HANYA ADA 1 MENU UNTUK PETUGAS (Serah Terima Shift)
+        document.getElementById('nav-dashboard').classList.add('hidden');
         document.getElementById('admin-menu').classList.add('hidden');
+        document.getElementById('petugas-settings-menu').classList.add('hidden');
+        document.getElementById('settings-inv-config-card').classList.add('hidden');
+        document.getElementById('settings-teams-card').classList.add('hidden');
       }
 
       document.getElementById('sidebar').classList.remove('hidden');
       document.getElementById('view-login').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
     }
 
     async function handleLogin(e) {
@@ -924,131 +829,175 @@
 
       showLoading('Verifikasi Akun...');
       try {
-        let res;
-        if (GAS_URL && GAS_URL.trim() !== "") {
-          res = await callBackend('login', { username: u, password: p });
-        } else {
-          res = await new Promise((resolve) => {
-            google.script.run
-              .withSuccessHandler(resolve)
-              .withFailureHandler(err => resolve({ success: false, error: err.message }))
-              .loginUser(u, p);
-          });
-        }
-
-        if (res.success) {
+        let res = await callBackend('login', { username: u, password: p });
+        if (res.success && res.user) {
           currentUser = res.user;
           localStorage.setItem('app_user_session', JSON.stringify(currentUser));
           setupUserUI();
-          document.getElementById('loading-msg').innerText = 'Memuat Data Aplikasi...';
-          await loadAllInitialData();
-          hideLoading();
-          navTo('dashboard');
+          if (currentUser.role === 'Petugas') {
+            navTo('shift');
+          } else {
+            navTo('dashboard');
+          }
+          await fetchInitialData();
         } else {
-          hideLoading();
-          errBox.innerText = res.error || "Login gagal";
+          errBox.innerText = res.error || 'Username atau password salah.';
           errBox.classList.remove('hidden');
         }
       } catch (err) {
-        hideLoading();
-        errBox.innerText = "Error: " + err.message;
+        errBox.innerText = 'Gagal terhubung ke server: ' + err.message;
         errBox.classList.remove('hidden');
+      } finally {
+        hideLoading();
       }
     }
 
     function logout() {
       localStorage.removeItem('app_user_session');
       currentUser = null;
-      dashboardStats = null;
-      shiftsData = [];
-      inventoryData = [];
-      teamsData = [];
-      usersList = [];
-      stockLogsData = null;
+      closeMobileMenu();
       showLoginScreen();
     }
 
-    // SPA NAVIGATION (BEBAS LOADING UNTUK MENU YANG SUDAH TERMUAT)
-    function navTo(viewName) {
-      closeMobileMenu();
+    async function fetchInitialData() {
+      showLoading('Memuat Data ShiftPro...');
+      try {
+        let res = await callBackend('getInitialData', { sessionToken: currentUser.token });
+        if (res.success && res.data) {
+          dashboardStats = res.data.dashboard;
+          shiftsData = res.data.shifts || [];
+          inventoryConfigData = res.data.inventoryConfig || [];
+          teamsData = res.data.teams || [];
+          usersList = res.data.users || [];
 
-      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-slate-800', 'text-amber-400'));
-
-      const targetView = document.getElementById('view-' + viewName);
-      const targetNav = document.getElementById('nav-' + viewName);
-
-      if (targetView) targetView.classList.remove('hidden');
-      if (targetNav) targetNav.classList.add('bg-slate-800', 'text-amber-400');
-
-      // Tampilkan chart dashboard yang telah dirender
-      if (viewName === 'dashboard' && dashboardStats) {
-        renderCharts(dashboardStats);
-      }
-
-      // KECUALI RIWAYAT MUTASI: HANYA DIAMBIL KETIKA MENU TERSEBUT DIAKSES
-      if (viewName === 'stock-logs') {
-        loadStockLogs();
+          if (currentUser.role === 'Admin') {
+            renderDashboardUI();
+            renderUsersUI();
+          }
+          renderShiftsUI();
+          renderInventoryConfigBuilderUI();
+          renderTeamsUI();
+        }
+      } catch (err) {
+        console.error('Fetch initial data error:', err);
+      } finally {
+        hideLoading();
       }
     }
 
-    // DASHBOARD RENDER
+    async function refreshAllData() {
+      await fetchInitialData();
+      Swal.fire({
+        icon: 'success',
+        title: 'Data Disegarkan',
+        text: 'Seluruh data berhasil disinkronkan!',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }
+
+    // NAVIGATION SYSTEM
+    function navTo(viewId) {
+      closeMobileMenu();
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.add('hidden'));
+
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-slate-800', 'text-white');
+        el.classList.add('text-slate-300');
+      });
+
+      const activeNav = document.getElementById('nav-' + viewId);
+      if (activeNav) {
+        activeNav.classList.add('bg-slate-800', 'text-white');
+      }
+
+      const activeView = document.getElementById('view-' + viewId);
+      if (activeView) {
+        activeView.classList.remove('hidden');
+      }
+
+      if (viewId === 'dashboard' && currentUser.role === 'Admin') {
+        renderDashboardUI();
+      } else if (viewId === 'shift') {
+        renderShiftsUI();
+      } else if (viewId === 'users' && currentUser.role === 'Admin') {
+        renderUsersUI();
+      } else if (viewId === 'settings' && currentUser.role === 'Admin') {
+        renderInventoryConfigBuilderUI();
+        renderTeamsUI();
+      }
+    }
+
+    // DASHBOARD MODULE
     function renderDashboardUI() {
       if (!dashboardStats) return;
-      document.getElementById('dash-total-shifts').innerText = dashboardStats.totalShifts ?? 0;
-      document.getElementById('dash-total-items').innerText = dashboardStats.totalItems ?? 0;
-      document.getElementById('dash-low-stock').innerText = dashboardStats.lowStockCount ?? 0;
-      document.getElementById('dash-pending-issues').innerText = dashboardStats.pendingIssues ?? 0;
+      document.getElementById('dash-total-shifts').innerText = dashboardStats.totalShifts || 0;
+      document.getElementById('dash-total-teams').innerText = dashboardStats.totalTeams || 0;
+      document.getElementById('dash-pending-issues').innerText = dashboardStats.pendingIssues || 0;
 
-      renderCharts(dashboardStats);
-    }
-
-    function renderCharts(stats) {
-      const el1 = document.getElementById('chartEquipment');
-      if (el1) {
-        const ctx1 = el1.getContext('2d');
-        if (chartEquipmentInstance) chartEquipmentInstance.destroy();
-        chartEquipmentInstance = new Chart(ctx1, {
-          type: 'doughnut',
-          data: {
-            labels: ['Kondisi Baik', 'Perlu Perhatian'],
-            datasets: [{
-              data: [12, Math.max(1, stats.pendingIssues || 0)],
-              backgroundColor: ['#10b981', '#f43f5e']
-            }]
-          },
-          options: { responsive: true, maintainAspectRatio: false }
+      const tbody = document.getElementById('dash-recent-shifts-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      const recent = (shiftsData || []).slice(0, 5);
+      if (recent.length > 0) {
+        recent.forEach(s => {
+          const inPetugas = formatPetugasList(s.petugas_in);
+          const outPetugas = formatPetugasList(s.petugas_out);
+          tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-3 font-mono text-xs whitespace-nowrap">${new Date(s.waktu_shift).toLocaleString('id-ID')}</td>
+              <td class="p-3 font-semibold text-slate-800">${s.nama_serah_terima}</td>
+              <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">${s.regu_list}</span></td>
+              <td class="p-3 text-xs">${inPetugas}</td>
+              <td class="p-3 text-xs">${outPetugas}</td>
+            </tr>
+          `;
         });
-      }
-
-      const el2 = document.getElementById('chartTransactions');
-      if (el2) {
-        const ctx2 = el2.getContext('2d');
-        if (chartTransactionsInstance) chartTransactionsInstance.destroy();
-        chartTransactionsInstance = new Chart(ctx2, {
-          type: 'bar',
-          data: {
-            labels: ['MCB', 'kWh', 'Gangguan', 'WO', 'P0'],
-            datasets: [{
-              label: 'Unit',
-              data: [8, 24, stats.pendingIssues || 0, 5, 2],
-              backgroundColor: '#f59e0b'
-            }]
-          },
-          options: { responsive: true, maintainAspectRatio: false }
-        });
+      } else {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="p-6 text-center text-slate-400">Belum ada catatan shift.</td>
+          </tr>
+        `;
       }
     }
 
-    // SHIFT MODULE (RENDER LOKAL DARI MEMORI)
+    // HELPER FORMAT PETUGAS LIST
+    function formatPetugasList(petugasArray) {
+      if (!petugasArray || petugasArray.length === 0) return '-';
+      return petugasArray.map(p => {
+        if (typeof p === 'string') return `<span class="text-slate-700 font-medium">${p}</span>`;
+        if (p && typeof p === 'object') {
+          if (p.tidak_hadir) {
+            return `<span class="text-rose-600 font-semibold">${p.nama} (Absen: ${p.alasan || 'Tanpa Ket'})</span>`;
+          }
+          return `<span class="text-emerald-700 font-medium">${p.nama}</span>`;
+        }
+        return '';
+      }).filter(Boolean).join(', ') || '-';
+    }
+
+    // SHIFT MODULE (PETUGAS HANYA DAPAT MELIHAT DATA BUATAN SENDIRI, ADMIN MELIHAT SEMUA)
     function renderShiftsUI() {
       const tbody = document.getElementById('shift-table-body');
       tbody.innerHTML = '';
 
-      if (shiftsData && shiftsData.length > 0) {
-        shiftsData.forEach(s => {
-          const hadir = (s.petugas_attendance || []).filter(p => !p.tidak_hadir).map(p => p.nama_lengkap).join(', ');
-          const absen = (s.petugas_attendance || []).filter(p => p.tidak_hadir).map(p => `${p.nama_lengkap} (${p.alasan || 'Tanpa Ket'})`).join(', ');
+      let listToRender = shiftsData || [];
+
+      // Filter data per pengguna jika role Petugas
+      if (currentUser && currentUser.role === 'Petugas') {
+        const uName = (currentUser.nama_lengkap || '').toLowerCase();
+        const uUser = (currentUser.username || '').toLowerCase();
+        listToRender = listToRender.filter(s => {
+          const cBy = String(s.created_by || '').toLowerCase();
+          return cBy === uName || cBy === uUser;
+        });
+      }
+
+      if (listToRender.length > 0) {
+        listToRender.forEach(s => {
+          const inList = formatPetugasList(s.petugas_in);
+          const outList = formatPetugasList(s.petugas_out);
 
           tbody.innerHTML += `
             <tr class="hover:bg-slate-50 transition">
@@ -1056,18 +1005,23 @@
               <td class="p-3.5 sm:p-4 font-semibold text-slate-800">${s.nama_serah_terima}</td>
               <td class="p-3.5 sm:p-4"><span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">${s.regu_list}</span></td>
               <td class="p-3.5 sm:p-4 text-xs whitespace-nowrap">${s.jenis_shift}</td>
-              <td class="p-3.5 sm:p-4 text-xs text-emerald-600 font-medium">${hadir || '-'}</td>
-              <td class="p-3.5 sm:p-4 text-xs text-rose-500">${absen || '-'}</td>
+              <td class="p-3.5 sm:p-4 text-xs">${inList}</td>
+              <td class="p-3.5 sm:p-4 text-xs">${outList}</td>
               <td class="p-3.5 sm:p-4 text-xs text-slate-500">${s.created_by}</td>
+              <td class="p-3.5 sm:p-4 text-center">
+                <button onclick="viewShiftDetail('${s.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg shadow-sm">
+                  Lihat Detail
+                </button>
+              </td>
             </tr>
           `;
         });
       } else {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="p-8 text-center text-slate-400">
+            <td colspan="8" class="p-8 text-center text-slate-400">
               <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
-              <p>Belum ada log serah terima shift yang dicatat.</p>
+              <p>Belum ada log serah terima shift ${currentUser.role === 'Petugas' ? 'buatan Anda' : ''}.</p>
             </td>
           </tr>
         `;
@@ -1075,43 +1029,88 @@
       }
     }
 
+    // UTILS FORMAT CURRENT DATE FOR DATETIME-LOCAL INPUT
+    function getCurrentDateTimeLocal() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    }
+
     function openShiftModal() {
-      // Data regu & petugas sudah siap di memori dari login/refresh -> Buka form INSTAN tanpa loading
+      // 1. Render Master Regu Checkboxes
       const reguContainer = document.getElementById('shift-regu-container');
       reguContainer.innerHTML = '';
       (teamsData || []).forEach(t => {
         reguContainer.innerHTML += `
-          <label class="flex items-center space-x-2 text-xs p-1 hover:bg-slate-50 rounded">
+          <label class="flex items-center space-x-2 text-xs p-1 hover:bg-slate-50 rounded cursor-pointer">
             <input type="checkbox" name="shift-regu-cb" value="${t.nama_regu}" onchange="limitReguSelection(this)" class="rounded text-amber-500 w-4 h-4">
-            <span>${t.nama_regu}</span>
+            <span class="font-medium text-slate-700">${t.nama_regu}</span>
           </label>
         `;
       });
 
-      const petugasContainer = document.getElementById('shift-petugas-container');
-      petugasContainer.innerHTML = '';
-      const list = (usersList && usersList.length > 0) ? usersList : [currentUser];
-      list.forEach(u => {
-        petugasContainer.innerHTML += `
-          <div class="p-3 bg-slate-50 border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <label class="flex items-center space-x-2 text-sm font-medium">
-              <input type="checkbox" name="petugas-present-cb" value="${u.id}" data-name="${u.nama_lengkap}" onchange="toggleAbsentReason('${u.id}', this)" class="rounded text-amber-500 w-4 h-4">
-              <span>${u.nama_lengkap} (${u.role})</span>
-            </label>
-            <div class="flex items-center space-x-2 text-xs pt-1 sm:pt-0">
-              <label class="flex items-center space-x-1 text-rose-600 font-semibold">
-                <input type="checkbox" id="absent-cb-${u.id}" onchange="toggleAbsentInput('${u.id}', this)" class="rounded text-rose-500 w-4 h-4">
-                <span>Tidak Hadir</span>
-              </label>
-              <input type="text" id="absent-reason-${u.id}" placeholder="Alasan..." disabled class="px-2.5 py-1.5 border rounded-lg text-xs flex-1 sm:w-36 disabled:bg-slate-200">
-            </div>
-          </div>
-        `;
-      });
+      // 2. Render Dynamic Petugas In & Out Text Fields (With Tidak Hadir Checkbox & Alasan)
+      const inContainer = document.getElementById('petugas-in-container');
+      const outContainer = document.getElementById('petugas-out-container');
+      inContainer.innerHTML = '';
+      outContainer.innerHTML = '';
 
-      document.getElementById('shift-waktu').value = new Date().toISOString().slice(0, 16);
+      // Autofill nama user yang sedang login di baris pertama Petugas Masuk
+      const defaultUserNama = currentUser ? currentUser.nama_lengkap : '';
+      addPetugasRow('in', { nama: defaultUserNama, tidak_hadir: false, alasan: '' });
+      addPetugasRow('out');
+
+      // 3. Render Dynamic Manual Inventory Checklist Fields (Under Peralatan & Kondisi)
+      renderManualInventoryFields();
+
+      // 4. Auto fill waktu shift dengan waktu sekarang
+      document.getElementById('shift-waktu').value = getCurrentDateTimeLocal();
+
       document.getElementById('modal-shift').classList.remove('hidden');
       lucide.createIcons();
+    }
+
+    // REVISI PETUGAS ROW WITH CHECKBOX TIDAK HADIR & ALASAN (DISABLED KECUALI TIDAK HADIR AKTIF)
+    function addPetugasRow(type, initialData = { nama: '', tidak_hadir: false, alasan: '' }) {
+      const container = document.getElementById(type === 'in' ? 'petugas-in-container' : 'petugas-out-container');
+      const fieldName = type === 'in' ? 'petugas-in-name' : 'petugas-out-name';
+      const placeholder = type === 'in' ? 'Nama Petugas Masuk' : 'Nama Petugas Keluar';
+      const borderFocusClass = type === 'in' ? 'focus:ring-emerald-500' : 'focus:ring-rose-500';
+
+      const rowId = 'petugas-row-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+
+      const div = document.createElement('div');
+      div.className = 'flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl shadow-sm animate-fade-in petugas-entry-row';
+      div.id = rowId;
+      div.innerHTML = `
+        <div class="flex-1 min-w-0">
+          <input type="text" name="${fieldName}" value="${initialData.nama || ''}" placeholder="${placeholder}" class="petugas-name-input w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 ${borderFocusClass}">
+        </div>
+        <div class="flex items-center space-x-2 flex-shrink-0">
+          <label class="flex items-center space-x-1.5 text-xs text-rose-600 font-semibold cursor-pointer select-none bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-200">
+            <input type="checkbox" onchange="togglePetugasAbsentRow(this)" ${initialData.tidak_hadir ? 'checked' : ''} class="petugas-absent-cb rounded text-rose-500 w-4 h-4">
+            <span>Tidak Hadir</span>
+          </label>
+          <input type="text" placeholder="Alasan..." value="${initialData.alasan || ''}" ${initialData.tidak_hadir ? '' : 'disabled'} class="petugas-reason-input px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs w-32 focus:ring-2 focus:ring-rose-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 transition">
+          <button type="button" onclick="this.closest('.petugas-entry-row').remove()" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition" title="Hapus Baris">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+    }
+
+    function togglePetugasAbsentRow(cb) {
+      const row = cb.closest('.petugas-entry-row');
+      const reasonInput = row.querySelector('.petugas-reason-input');
+      if (cb.checked) {
+        reasonInput.disabled = false;
+        reasonInput.focus();
+      } else {
+        reasonInput.disabled = true;
+        reasonInput.value = '';
+      }
     }
 
     function limitReguSelection(cb) {
@@ -1127,28 +1126,49 @@
       }
     }
 
-    function toggleAbsentReason(uid, presentCb) {
-      const absentCb = document.getElementById('absent-cb-' + uid);
-      if (presentCb.checked && absentCb) {
-        absentCb.checked = false;
-        toggleAbsentInput(uid, absentCb);
-      }
-    }
+    function renderManualInventoryFields() {
+      const container = document.getElementById('shift-manual-inv-container');
+      container.innerHTML = '';
 
-    function toggleAbsentInput(uid, absentCb) {
-      const reasonInput = document.getElementById('absent-reason-' + uid);
-      const presentCb = document.querySelector(`input[name="petugas-present-cb"][value="${uid}"]`);
-      if (absentCb.checked) {
-        if (presentCb) presentCb.checked = false;
-        reasonInput.disabled = false;
-        reasonInput.focus();
+      if (inventoryConfigData && inventoryConfigData.length > 0) {
+        inventoryConfigData.forEach(cat => {
+          const items = cat.items || [];
+          let itemInputsHtml = '';
+
+          items.forEach(item => {
+            itemInputsHtml += `
+              <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <span class="text-xs font-semibold text-slate-700 truncate pr-2">${item}</span>
+                <input type="number" data-category="${cat.nama_kategori}" data-item="${item}" value="0" min="0" class="inv-manual-input w-20 px-2.5 py-1.5 border rounded-lg text-sm text-center font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+              </div>
+            `;
+          });
+
+          container.innerHTML += `
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <h5 class="font-bold text-sm text-slate-800 border-b pb-2 flex items-center justify-between">
+                <span class="flex items-center space-x-2">
+                  <i data-lucide="package" class="w-4 h-4 text-amber-500"></i>
+                  <span>${cat.nama_kategori}</span>
+                </span>
+                <span class="text-xs text-slate-400 font-normal">${items.length} item rating</span>
+              </h5>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                ${itemInputsHtml || '<p class="text-xs text-slate-400 col-span-full">Belum ada item untuk kategori ini.</p>'}
+              </div>
+            </div>
+          `;
+        });
       } else {
-        reasonInput.disabled = true;
-        reasonInput.value = '';
+        container.innerHTML = `
+          <div class="p-4 text-center bg-slate-50 rounded-xl border text-slate-400 text-xs">
+            Belum ada kategori checklist inventaris diset oleh Admin di Pengaturan.
+          </div>
+        `;
       }
+      lucide.createIcons();
     }
 
-    // CREATE SHIFT (JANGAN LOADING LAYAR PENUH, LANGSUNG UPDATE LOKAL)
     async function submitShiftForm(e) {
       e.preventDefault();
 
@@ -1163,22 +1183,63 @@
         return;
       }
 
-      const attendance = [];
-      const list = (usersList && usersList.length > 0) ? usersList : [currentUser];
-      list.forEach(u => {
-        const presentCb = document.querySelector(`input[name="petugas-present-cb"][value="${u.id}"]`);
-        const absentCb = document.getElementById('absent-cb-' + u.id);
-        const reasonInput = document.getElementById('absent-reason-' + u.id);
-
-        if (presentCb && (presentCb.checked || (absentCb && absentCb.checked))) {
-          attendance.push({
-            user_id: u.id,
-            nama_lengkap: u.nama_lengkap,
-            tidak_hadir: absentCb ? absentCb.checked : false,
-            alasan: (absentCb && absentCb.checked) ? reasonInput.value : ''
+      // Collect Petugas In Objects
+      const petugasInList = [];
+      document.querySelectorAll('#petugas-in-container .petugas-entry-row').forEach(row => {
+        const name = row.querySelector('.petugas-name-input').value.trim();
+        const absent = row.querySelector('.petugas-absent-cb').checked;
+        const reason = row.querySelector('.petugas-reason-input').value.trim();
+        if (name) {
+          petugasInList.push({
+            nama: name,
+            tidak_hadir: absent,
+            alasan: absent ? reason : ''
           });
         }
       });
+
+      // Collect Petugas Out Objects
+      const petugasOutList = [];
+      document.querySelectorAll('#petugas-out-container .petugas-entry-row').forEach(row => {
+        const name = row.querySelector('.petugas-name-input').value.trim();
+        const absent = row.querySelector('.petugas-absent-cb').checked;
+        const reason = row.querySelector('.petugas-reason-input').value.trim();
+        if (name) {
+          petugasOutList.push({
+            nama: name,
+            tidak_hadir: absent,
+            alasan: absent ? reason : ''
+          });
+        }
+      });
+
+      if (petugasInList.length === 0 && petugasOutList.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Peringatan',
+          text: 'Isi minimal 1 nama petugas masuk atau keluar.',
+          confirmButtonColor: '#f59e0b'
+        });
+        return;
+      }
+
+      // Collect Manual Inventory Grouped by Category
+      const manualInvGrouped = {};
+      document.querySelectorAll('.inv-manual-input').forEach(inp => {
+        const catName = inp.getAttribute('data-category');
+        const itemName = inp.getAttribute('data-item');
+        const qty = Number(inp.value || 0);
+
+        if (!manualInvGrouped[catName]) {
+          manualInvGrouped[catName] = [];
+        }
+        manualInvGrouped[catName].push({ item: itemName, qty: qty });
+      });
+
+      const inventarisManualList = Object.keys(manualInvGrouped).map(catName => ({
+        kategori: catName,
+        items: manualInvGrouped[catName]
+      }));
 
       const shiftNama = document.getElementById('shift-nama').value;
       const shiftJenis = document.getElementById('shift-jenis').value;
@@ -1206,12 +1267,13 @@
         jenis_shift: shiftJenis,
         regu_list: reguList,
         waktu_shift: shiftWaktu,
-        petugas_attendance: attendance,
+        petugas_in: petugasInList,
+        petugas_out: petugasOutList,
         peralatan_kondisi: eqData,
+        inventaris_manual: inventarisManualList,
         transaksi_gangguan: txData
       };
 
-      // Indikator tombol simpan - TIDAK menampilkan overlay loading global
       const submitBtn = document.getElementById('btn-submit-shift');
       const originalBtnHtml = submitBtn.innerHTML;
       submitBtn.disabled = true;
@@ -1228,39 +1290,37 @@
       try {
         let res = await callBackend('createShift', { sessionToken: currentUser.token, data: payload });
         if (res.success) {
-          // Prepend ke data lokal agar langsung muncul di tabel tanpa memuat ulang server
           const newShiftRecord = {
             id: 'SFT' + Date.now(),
             nama_serah_terima: shiftNama,
             regu_list: reguList.join(', '),
             waktu_shift: shiftWaktu,
             jenis_shift: shiftJenis,
-            petugas_attendance: attendance,
+            petugas_in: petugasInList,
+            petugas_out: petugasOutList,
             peralatan_kondisi: eqData,
+            inventaris_manual: inventarisManualList,
             transaksi_gangguan: txData,
             created_by: currentUser.nama_lengkap || currentUser.username,
             created_at: new Date().toISOString()
           };
           shiftsData.unshift(newShiftRecord);
 
-          // Update UI tabel shift
           renderShiftsUI();
 
-          // Update statistik dashboard
           if (dashboardStats) {
             dashboardStats.totalShifts = (dashboardStats.totalShifts || 0) + 1;
             dashboardStats.pendingIssues = Number(txData.gangguan_belum_selesai || 0);
             renderDashboardUI();
           }
 
-          // Tutup modal dan bersihkan form
           closeModal('modal-shift');
           document.getElementById('shift-nama').value = '';
 
           Swal.fire({
             icon: 'success',
             title: 'Berhasil!',
-            text: 'Serah terima shift berhasil disimpan!',
+            text: 'Serah terima shift & inventaris manual berhasil disimpan!',
             timer: 2000,
             showConfirmButton: false
           });
@@ -1285,284 +1345,198 @@
       }
     }
 
-    // INVENTORY MODULE
-    function renderInventoryUI() {
-      const container = document.getElementById('inventory-grid-container');
-      container.innerHTML = '';
+    // VIEW SHIFT DETAIL MODAL
+    function viewShiftDetail(shiftId) {
+      const s = shiftsData.find(x => x.id === shiftId);
+      if (!s) return;
 
-      if (inventoryData && inventoryData.length > 0) {
-        inventoryData.forEach(cat => {
+      const container = document.getElementById('modal-detail-content');
+      
+      const renderDetailPetugasList = (list, title, colorTheme) => {
+        if (!list || list.length === 0) return `<p class="text-xs text-slate-400">Tidak ada data ${title}</p>`;
+        return list.map(p => {
+          if (typeof p === 'string') {
+            return `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-${colorTheme}-100 text-${colorTheme}-800">✓ ${p}</span>`;
+          }
+          if (p && typeof p === 'object') {
+            if (p.tidak_hadir) {
+              return `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">✕ ${p.nama} (Tidak Hadir: ${p.alasan || 'Tanpa Alasan'})</span>`;
+            }
+            return `<span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-${colorTheme}-100 text-${colorTheme}-800">✓ ${p.nama}</span>`;
+          }
+          return '';
+        }).join(' ');
+      };
+
+      const inHtml = renderDetailPetugasList(s.petugas_in, 'Petugas Masuk', 'emerald');
+      const outHtml = renderDetailPetugasList(s.petugas_out, 'Petugas Keluar', 'rose');
+
+      let invManualHtml = '';
+      if (s.inventaris_manual && s.inventaris_manual.length > 0) {
+        s.inventaris_manual.forEach(cat => {
           let itemsHtml = '';
-          (cat.items || []).forEach(item => {
+          (cat.items || []).forEach(it => {
             itemsHtml += `
-              <div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl hover:border-amber-400 transition">
-                <span class="font-semibold text-slate-700 text-sm">${item.nama_sub_item}</span>
-                <div class="flex items-center space-x-2">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold ${item.stok <= 2 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-800'}">
-                    Stok: ${item.stok}
-                  </span>
-                  <button onclick="quickEditStock('${item.id}', ${item.stok})" class="p-1.5 text-slate-400 hover:text-amber-600 active:bg-slate-200 rounded-lg" title="Quick Edit Stok">
-                    <i data-lucide="edit-3" class="w-4 h-4"></i>
-                  </button>
-                </div>
+              <div class="flex items-center justify-between p-2 bg-slate-50 border rounded-lg text-xs">
+                <span class="font-medium text-slate-700">${it.item}</span>
+                <span class="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">${it.qty}</span>
               </div>
             `;
           });
 
-          container.innerHTML += `
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div class="bg-slate-900 px-4 sm:px-5 py-3 text-white flex items-center justify-between">
-                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
-                  <i data-lucide="folder" class="w-5 h-5 text-amber-400"></i>
-                  <span>[${cat.nama_kategori}]</span>
-                </h3>
-                <span class="text-xs text-slate-400">${(cat.items || []).length} Sub-item</span>
+          invManualHtml += `
+            <div class="border rounded-xl p-3 bg-white space-y-2">
+              <h6 class="font-bold text-xs text-slate-800 uppercase tracking-wide border-b pb-1">${cat.kategori}</h6>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                ${itemsHtml}
               </div>
-              <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                ${itemsHtml || '<p class="text-xs text-slate-400 col-span-full">Belum ada sub-item.</p>'}
+            </div>
+          `;
+        });
+      } else {
+        invManualHtml = '<p class="text-xs text-slate-400">Tidak ada catatan inventaris manual.</p>';
+      }
+
+      const eq = s.peralatan_kondisi || {};
+      const tx = s.transaksi_gangguan || {};
+
+      container.innerHTML = `
+        <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-1">
+          <h4 class="font-black text-slate-800 text-lg">${s.nama_serah_terima}</h4>
+          <p class="text-xs text-slate-600">Waktu: <span class="font-bold font-mono">${new Date(s.waktu_shift).toLocaleString('id-ID')}</span> | Jenis: <span class="font-bold">${s.jenis_shift}</span> | Regu: <span class="font-bold text-amber-700">${s.regu_list}</span></p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
+            <span class="text-xs font-bold uppercase text-emerald-800 block">Petugas Masuk (Check-In)</span>
+            <div class="flex flex-wrap gap-1.5">${inHtml}</div>
+          </div>
+          <div class="p-3.5 bg-rose-50/60 border border-rose-200 rounded-xl space-y-2">
+            <span class="text-xs font-bold uppercase text-rose-800 block">Petugas Keluar (Check-Out)</span>
+            <div class="flex flex-wrap gap-1.5">${outHtml}</div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h5 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+            <i data-lucide="wrench" class="w-4 h-4 text-amber-500"></i>
+            <span>Peralatan & Kondisi Operasional</span>
+          </h5>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">Kendaraan:</span> <span class="font-bold">${eq.kendaraan || '-'}</span></div>
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">HP APKT:</span> <span class="font-bold">${eq.hp_apkt || '-'}</span></div>
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">Tool Kit:</span> <span class="font-bold">${eq.toolkit || '-'}</span></div>
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">Stick 20kV:</span> <span class="font-bold">${eq.stick_20kv || '-'}</span></div>
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">Senter:</span> <span class="font-bold">${eq.senter || '-'}</span></div>
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">Radio Gasap:</span> <span class="font-bold">${eq.radio_gasap || '-'}</span></div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h5 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+            <i data-lucide="boxes" class="w-4 h-4 text-amber-500"></i>
+            <span>Sisa Inventaris Manual</span>
+          </h5>
+          <div class="space-y-3">
+            ${invManualHtml}
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h5 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-amber-500"></i>
+            <span>Data Transaksi & Gangguan</span>
+          </h5>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">MCB Terpakai:</span> <span class="font-bold">${tx.mcb || 0}</span></div>
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">kWh Terpakai:</span> <span class="font-bold">${tx.kwh_used || 0}</span></div>
+            <div class="p-2 border rounded-lg bg-slate-50"><span class="text-slate-500 block">Sisa kWh:</span> <span class="font-bold">${tx.kwh_rem || 0}</span></div>
+            <div class="p-2 border rounded-lg bg-rose-50 border-rose-200"><span class="text-rose-600 block">Gangguan Pending:</span> <span class="font-bold text-rose-700">${tx.gangguan_belum_selesai || 0}</span></div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('modal-detail-shift').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    // ADMIN INVENTORY CHECKLIST CONFIG BUILDER
+    function renderInventoryConfigBuilderUI() {
+      if (currentUser.role !== 'Admin') return;
+      const container = document.getElementById('inv-config-builder-container');
+      container.innerHTML = '';
+
+      if (inventoryConfigData && inventoryConfigData.length > 0) {
+        inventoryConfigData.forEach((cat, cIdx) => {
+          const itemsStr = (cat.items || []).join(', ');
+          container.innerHTML += `
+            <div class="p-4 bg-slate-50 border rounded-2xl space-y-3 shadow-sm inv-cfg-block">
+              <div class="flex items-center justify-between">
+                <input type="text" value="${cat.nama_kategori}" placeholder="Nama Kategori (Contoh: Sisa MCB)" class="inv-cfg-cat-name font-bold text-sm px-3 py-2 border rounded-xl flex-1 max-w-xs focus:ring-2 focus:ring-amber-500">
+                <button type="button" onclick="this.closest('.inv-cfg-block').remove()" class="text-rose-500 hover:text-rose-700 p-2" title="Hapus Kategori">
+                  <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </button>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sub-Kategori / Rating Item (Pisahkan dengan koma)</label>
+                <input type="text" value="${itemsStr}" placeholder="Contoh: 2 A, 4 A, 6 A, 10 A, 16 A" class="inv-cfg-items-str w-full px-3.5 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-amber-500">
               </div>
             </div>
           `;
         });
         lucide.createIcons();
       } else {
-        container.innerHTML = `
-          <div class="bg-white p-8 sm:p-12 text-center rounded-2xl border border-slate-200 text-slate-400">
-            <i data-lucide="boxes" class="w-12 h-12 mx-auto mb-2 stroke-1"></i>
-            <p class="text-base font-medium">Inventaris Masih Kosong</p>
-            <p class="text-xs mt-1">Klik "+ Kategori / Sub-Item" untuk menambahkan data.</p>
-          </div>
-        `;
-        lucide.createIcons();
+        addInventoryCategoryBlock();
       }
     }
 
-    async function quickEditStock(itemId, currentStock) {
-      const { value: newStockStr } = await Swal.fire({
-        title: 'Quick Edit Stok',
-        text: 'Masukkan jumlah stok baru:',
-        input: 'number',
-        inputValue: currentStock,
-        inputAttributes: { min: 0, step: 1 },
-        showCancelButton: true,
-        confirmButtonText: 'Simpan',
-        cancelButtonText: 'Batal',
-        confirmButtonColor: '#f59e0b',
-        cancelButtonColor: '#64748b',
-        inputValidator: (value) => {
-          if (value === '' || isNaN(value) || Number(value) < 0) {
-            return 'Jumlah stok harus berupa angka valid (minimal 0)!';
-          }
-        }
-      });
-
-      if (newStockStr === undefined) return;
-      const newStock = parseInt(newStockStr, 10);
-
-      showLoading('Memperbarui Stok...');
-      try {
-        let res = await callBackend('quickUpdateStock', {
-          sessionToken: currentUser.token,
-          itemId: itemId,
-          newStock: newStock,
-          reason: "Quick Edit Stok dari Tabel Inventaris"
-        });
-        if (res.success) {
-          // Perbarui data lokal
-          for (const cat of inventoryData) {
-            for (const item of cat.items) {
-              if (item.id === itemId) {
-                item.stok = newStock;
-              }
-            }
-          }
-          renderInventoryUI();
-
-          // Perbarui hitungan low stock di dashboard
-          let lowCount = 0;
-          inventoryData.forEach(c => c.items.forEach(i => { if (i.stok <= 2) lowCount++; }));
-          if (dashboardStats) {
-            dashboardStats.lowStockCount = lowCount;
-            document.getElementById('dash-low-stock').innerText = lowCount;
-          }
-          stockLogsData = null; // Invalidate riwayat mutasi agar diperbarui saat dibuka
-
-          Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: 'Stok berhasil diperbarui!',
-            timer: 1500,
-            showConfirmButton: false
-          });
-        } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: res.error || 'Terjadi kesalahan.',
-            confirmButtonColor: '#f59e0b'
-          });
-        }
-      } catch (e) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Kesalahan Sistem',
-          text: e.message,
-          confirmButtonColor: '#f59e0b'
-        });
-      } finally {
-        hideLoading();
-      }
-    }
-
-    function openCategoryModal() {
-      document.getElementById('cat-name').value = '';
-      document.getElementById('subitem-rows-container').innerHTML = '';
-      addSubItemRow();
-      document.getElementById('modal-category').classList.remove('hidden');
-    }
-
-    function addSubItemRow() {
-      const container = document.getElementById('subitem-rows-container');
-      container.innerHTML += `
-        <div class="flex items-center space-x-2">
-          <input type="text" name="sub-name" placeholder="Nama Sub-item" required class="flex-1 px-3 py-2 border rounded-xl text-base sm:text-sm">
-          <input type="number" name="sub-stok" placeholder="Stok" value="0" min="0" required class="w-20 px-3 py-2 border rounded-xl text-base sm:text-sm">
-          <button type="button" onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700 p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+    function addInventoryCategoryBlock() {
+      const container = document.getElementById('inv-config-builder-container');
+      const div = document.createElement('div');
+      div.className = 'p-4 bg-slate-50 border rounded-2xl space-y-3 shadow-sm inv-cfg-block animate-fade-in';
+      div.innerHTML = `
+        <div class="flex items-center justify-between">
+          <input type="text" placeholder="Nama Kategori (Contoh: Sisa MCB)" class="inv-cfg-cat-name font-bold text-sm px-3 py-2 border rounded-xl flex-1 max-w-xs focus:ring-2 focus:ring-amber-500">
+          <button type="button" onclick="this.closest('.inv-cfg-block').remove()" class="text-rose-500 hover:text-rose-700 p-2" title="Hapus Kategori">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Sub-Kategori / Rating Item (Pisahkan dengan koma)</label>
+          <input type="text" placeholder="Contoh: 2 A, 4 A, 6 A, 10 A, 16 A" class="inv-cfg-items-str w-full px-3.5 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-amber-500">
         </div>
       `;
+      container.appendChild(div);
       lucide.createIcons();
     }
 
-    async function submitCategoryForm(e) {
-      e.preventDefault();
-      const catName = document.getElementById('cat-name').value;
-      const subNames = Array.from(document.querySelectorAll('input[name="sub-name"]')).map(i => i.value);
-      const subStoks = Array.from(document.querySelectorAll('input[name="sub-stok"]')).map(i => i.value);
+    async function saveInventoryConfigData() {
+      const blocks = document.querySelectorAll('.inv-cfg-block');
+      const categories = [];
 
-      const items = subNames.map((name, idx) => ({
-        nama_sub_item: name,
-        stok: subStoks[idx] || 0
-      }));
+      blocks.forEach(b => {
+        const catName = b.querySelector('.inv-cfg-cat-name').value.trim();
+        const itemsStr = b.querySelector('.inv-cfg-items-str').value;
+        const itemsArray = itemsStr.split(',').map(s => s.trim()).filter(s => s !== '');
 
-      showLoading('Menyimpan Inventaris...');
-      try {
-        let res = await callBackend('saveCategoryWithItems', {
-          sessionToken: currentUser.token,
-          data: { nama_kategori: catName, items: items }
-        });
-        if (res.success) {
-          closeModal('modal-category');
-          // Ambil ulang data inventaris untuk id baru dari spreadsheet
-          let invRes = await callBackend('getInventory', { sessionToken: currentUser.token });
-          if (invRes.success) {
-            inventoryData = invRes.data;
-            renderInventoryUI();
-            let totalItm = 0;
-            let lowCount = 0;
-            inventoryData.forEach(c => c.items.forEach(i => {
-              totalItm++;
-              if (i.stok <= 2) lowCount++;
-            }));
-            if (dashboardStats) {
-              dashboardStats.totalItems = totalItm;
-              dashboardStats.lowStockCount = lowCount;
-              document.getElementById('dash-total-items').innerText = totalItm;
-              document.getElementById('dash-low-stock').innerText = lowCount;
-            }
-          }
-          Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: 'Kategori & sub-item berhasil disimpan!',
-            timer: 2000,
-            showConfirmButton: false
-          });
-        } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: res.error,
-            confirmButtonColor: '#f59e0b'
+        if (catName) {
+          categories.push({
+            nama_kategori: catName,
+            items: itemsArray
           });
         }
-      } catch (err) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Kesalahan Sistem',
-          text: err.message,
-          confirmButtonColor: '#f59e0b'
-        });
-      } finally {
-        hideLoading();
-      }
-    }
-
-    function openMutateModal() {
-      const select = document.getElementById('mutate-item-id');
-      select.innerHTML = '';
-
-      if (!inventoryData || inventoryData.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Perhatian',
-          text: 'Data inventaris kosong.',
-          confirmButtonColor: '#f59e0b'
-        });
-        return;
-      }
-
-      inventoryData.forEach(cat => {
-        (cat.items || []).forEach(item => {
-          select.innerHTML += `<option value="${item.id}">[${cat.nama_kategori}] ${item.nama_sub_item} (Stok: ${item.stok})</option>`;
-        });
       });
 
-      document.getElementById('modal-mutate').classList.remove('hidden');
-    }
-
-    async function submitMutateForm(e) {
-      e.preventDefault();
-      const itemId = document.getElementById('mutate-item-id').value;
-      const type = document.getElementById('mutate-type').value;
-      const qty = Number(document.getElementById('mutate-qty').value);
-      const reason = document.getElementById('mutate-reason').value;
-
-      showLoading('Memproses Mutasi Stok...');
+      showLoading('Menyimpan Pengaturan Inventaris...');
       try {
-        let res = await callBackend('mutateStock', {
-          sessionToken: currentUser.token,
-          data: { itemId: itemId, jenis_mutasi: type, jumlah: qty, keterangan: reason }
-        });
+        let res = await callBackend('saveInventoryConfig', { sessionToken: currentUser.token, categories: categories });
         if (res.success) {
-          closeModal('modal-mutate');
-          // Perbarui data lokal
-          for (const cat of inventoryData) {
-            for (const item of cat.items) {
-              if (item.id === itemId) {
-                if (type === 'Tambah') {
-                  item.stok += qty;
-                } else {
-                  item.stok = Math.max(0, item.stok - qty);
-                }
-              }
-            }
-          }
-          renderInventoryUI();
-
-          let lowCount = 0;
-          inventoryData.forEach(c => c.items.forEach(i => { if (i.stok <= 2) lowCount++; }));
-          if (dashboardStats) {
-            dashboardStats.lowStockCount = lowCount;
-            document.getElementById('dash-low-stock').innerText = lowCount;
-          }
-          stockLogsData = null; // Invalidate riwayat mutasi agar dimuat ulang saat dibuka
-
+          inventoryConfigData = categories;
           Swal.fire({
             icon: 'success',
             title: 'Berhasil!',
-            text: 'Mutasi stok berhasil diproses!',
-            timer: 2000,
-            showConfirmButton: false
+            text: 'Pengaturan Kategori Inventaris Serah Terima Berhasil Disimpan!',
+            confirmButtonColor: '#f59e0b'
           });
         } else {
           Swal.fire({
@@ -1581,86 +1555,6 @@
         });
       } finally {
         hideLoading();
-      }
-    }
-
-    // STOCK LOGS MODULE (HANYA DIAMBIL KETIKA MENU DIAKSES, LOADING INLINE DI TABEL)
-    async function loadStockLogs() {
-      const tbody = document.getElementById('stock-logs-table-body');
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="8" class="p-8 text-center text-slate-500">
-            <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-amber-500 border-t-transparent mb-2"></div>
-            <p class="text-xs font-semibold">Mengambil Riwayat Mutasi Stok...</p>
-          </td>
-        </tr>
-      `;
-
-      if (currentUser.role === 'Petugas') {
-        document.getElementById('stock-log-desc').innerText = "Menampilkan riwayat mutasi stok khusus untuk aktivitas Anda.";
-      }
-
-      try {
-        let res = await callBackend('getStockLogs', { sessionToken: currentUser.token });
-        if (res.success && res.data && res.data.length > 0) {
-          stockLogsData = res.data;
-          renderStockLogsUI(stockLogsData);
-        } else {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="8" class="p-8 text-center text-slate-400">
-                <i data-lucide="history" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
-                <p>Belum ada log mutasi stok terdaftar.</p>
-              </td>
-            </tr>
-          `;
-          lucide.createIcons();
-        }
-      } catch (err) {
-        console.error(err);
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="8" class="p-6 text-center text-rose-500 text-xs">
-              Gagal memuat log mutasi: ${err.message || err}
-            </td>
-          </tr>
-        `;
-      }
-    }
-
-    function renderStockLogsUI(logs) {
-      const tbody = document.getElementById('stock-logs-table-body');
-      tbody.innerHTML = '';
-
-      if (logs && logs.length > 0) {
-        logs.forEach(log => {
-          tbody.innerHTML += `
-            <tr class="hover:bg-slate-50 transition">
-              <td class="p-3.5 sm:p-4 font-mono text-xs whitespace-nowrap">${new Date(log.timestamp).toLocaleString('id-ID')}</td>
-              <td class="p-3.5 sm:p-4 font-semibold text-slate-800">${log.nama_kategori}</td>
-              <td class="p-3.5 sm:p-4 text-xs font-medium">${log.nama_sub_item}</td>
-              <td class="p-3.5 sm:p-4">
-                <span class="px-2.5 py-1 rounded-full text-xs font-bold ${log.jenis_mutasi.includes('+') || log.jenis_mutasi === 'Tambah' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
-                  ${log.jenis_mutasi}
-                </span>
-              </td>
-              <td class="p-3.5 sm:p-4 font-bold text-slate-800">${log.jumlah}</td>
-              <td class="p-3.5 sm:p-4 text-xs font-mono whitespace-nowrap">${log.stok_sebelum} &rarr; <span class="font-bold">${log.stok_sesudah}</span></td>
-              <td class="p-3.5 sm:p-4 text-xs text-slate-500">${log.keterangan || '-'}</td>
-              <td class="p-3.5 sm:p-4 text-xs font-semibold text-slate-700">${log.pengubah}</td>
-            </tr>
-          `;
-        });
-      } else {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="8" class="p-8 text-center text-slate-400">
-              <i data-lucide="history" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
-              <p>Belum ada log mutasi stok terdaftar.</p>
-            </td>
-          </tr>
-        `;
-        lucide.createIcons();
       }
     }
 

@@ -1,4 +1,7 @@
-// --- CONFIG & UTILITIES ---
+// ==========================================
+// SHIFTPRO - GOOGLE APPS SCRIPT BACKEND
+// ==========================================
+
 const SPREADSHEET_ID = null; // null = Gunakan ActiveSpreadsheet()
 
 function getDb() {
@@ -28,7 +31,7 @@ function hashPassword(password) {
   const digest = Utilities.computeDigest(
     Utilities.DigestAlgorithm.SHA_256,
     password,
-    Utilities.Charset.UTF_8,
+    Utilities.Charset.UTF_8
   );
   return digest
     .map((byte) => (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, "0"))
@@ -83,48 +86,31 @@ function setupDatabase() {
   // 2. Teams
   getOrCreateSheet(ss, "Teams", ["id", "nama_regu", "keterangan"]);
 
-  // 3. Shifts
+  // 3. Shifts (Revisi Schema Input Data Petugas In/Out & Inventaris Manual)
   getOrCreateSheet(ss, "Shifts", [
     "id",
     "nama_serah_terima",
     "regu_list",
     "waktu_shift",
     "jenis_shift",
-    "petugas_attendance_json",
+    "petugas_in_json",
+    "petugas_out_json",
     "peralatan_kondisi_json",
+    "inventaris_manual_json",
     "transaksi_gangguan_json",
     "created_by",
     "created_at",
   ]);
 
-  // 4. Categories (Parent Inventaris)
-  getOrCreateSheet(ss, "Categories", ["id", "nama_kategori", "created_at"]);
-
-  // 5. InventoryItems (Child Inventaris)
-  getOrCreateSheet(ss, "InventoryItems", [
+  // 4. InventoryConfig (Konfigurasi Dinamis Kategori & Item Checklist Inventaris)
+  getOrCreateSheet(ss, "InventoryConfig", [
     "id",
-    "category_id",
-    "nama_sub_item",
-    "stok",
-    "updated_at",
-  ]);
-
-  // 6. StockLogs (Audit Log)
-  getOrCreateSheet(ss, "StockLogs", [
-    "id",
-    "item_id",
     "nama_kategori",
-    "nama_sub_item",
-    "jenis_mutasi",
-    "jumlah",
-    "stok_sebelum",
-    "stok_sesudah",
-    "keterangan",
-    "pengubah",
-    "timestamp",
+    "items_json",
+    "created_at",
   ]);
 
-  // 7. Settings
+  // 5. Settings
   getOrCreateSheet(ss, "Settings", ["key", "value"]);
 
   // Insert Default Admin & Petugas jika Users kosong
@@ -169,32 +155,48 @@ function setupDatabase() {
     teamsSheet.appendRow([generateId("TM"), "Bajo p.", "Regu Area Bajo"]);
   }
 
-  // Insert Default Inventaris Parent-Child Sample jika kosong
-  const catSheet = ss.getSheetByName("Categories");
-  if (catSheet.getLastRow() <= 1) {
-    const cat1Id = generateId("CAT");
-    const cat2Id = generateId("CAT");
+  // Insert Default Inventory Config jika kosong
+  const cfgSheet = ss.getSheetByName("InventoryConfig");
+  if (cfgSheet.getLastRow() <= 1) {
     const now = new Date().toISOString();
-
-    catSheet.appendRow([cat1Id, "MCB", now]);
-    catSheet.appendRow([cat2Id, "Fuse Link", now]);
-
-    const itemSheet = ss.getSheetByName("InventoryItems");
-    itemSheet.appendRow([generateId("ITM"), cat1Id, "2 A", 10, now]);
-    itemSheet.appendRow([generateId("ITM"), cat1Id, "4 A", 1, now]);
-    itemSheet.appendRow([generateId("ITM"), cat1Id, "6 A", 2, now]);
-    itemSheet.appendRow([generateId("ITM"), cat1Id, "10 A", 0, now]);
-    itemSheet.appendRow([generateId("ITM"), cat1Id, "16 A", 1, now]);
-    itemSheet.appendRow([generateId("ITM"), cat1Id, "20 A", 0, now]);
-
-    itemSheet.appendRow([generateId("ITM"), cat2Id, "6 A", 15, now]);
-    itemSheet.appendRow([generateId("ITM"), cat2Id, "10 A", 8, now]);
-    itemSheet.appendRow([generateId("ITM"), cat2Id, "15 A", 5, now]);
+    cfgSheet.appendRow([
+      generateId("CFG"),
+      "Sisa MCB",
+      JSON.stringify([
+        "2 A",
+        "4 A",
+        "6 A",
+        "10 A",
+        "16 A",
+        "20 A",
+        "25 A",
+        "35 A",
+      ]),
+      now,
+    ]);
+    cfgSheet.appendRow([
+      generateId("CFG"),
+      "Sisa Fuse link",
+      JSON.stringify([
+        "2 A",
+        "3 A",
+        "4 A",
+        "5 A",
+        "6 A",
+        "8 A",
+        "10 A",
+        "15 A",
+        "20 A",
+        "25 A",
+        "30 A",
+      ]),
+      now,
+    ]);
   }
 
   return {
     success: true,
-    message: "Database dan seeder awal berhasil disiapkan!",
+    message: "Database ShiftPro berhasil disiapkan!",
   };
 }
 
@@ -205,7 +207,7 @@ function doGet(e) {
   }
   return HtmlService.createTemplateFromFile("Index")
     .evaluate()
-    .setTitle("Serah Terima Shift & Inventaris Operasional")
+    .setTitle("ShiftPro - Serah Terima Shift Operasional")
     .addMetaTag("viewport", "width=device-width, initial-scale=1")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -216,7 +218,7 @@ function doPost(e) {
     return handleApiRequest(postData.action, postData.payload);
   } catch (err) {
     return ContentService.createTextOutput(
-      JSON.stringify({ success: false, error: err.toString() }),
+      JSON.stringify({ success: false, error: err.toString() })
     ).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -240,25 +242,11 @@ function handleApiRequest(action, payload) {
       case "createShift":
         result = createShift(payload.sessionToken, payload.data);
         break;
-      case "getInventory":
-        result = getInventory(payload.sessionToken);
+      case "getInventoryConfig":
+        result = getInventoryConfig(payload.sessionToken);
         break;
-      case "saveCategoryWithItems":
-        result = saveCategoryWithItems(payload.sessionToken, payload.data);
-        break;
-      case "quickUpdateStock":
-        result = quickUpdateStock(
-          payload.sessionToken,
-          payload.itemId,
-          payload.newStock,
-          payload.reason,
-        );
-        break;
-      case "mutateStock":
-        result = mutateStock(payload.sessionToken, payload.data);
-        break;
-      case "getStockLogs":
-        result = getStockLogs(payload.sessionToken);
+      case "saveInventoryConfig":
+        result = saveInventoryConfig(payload.sessionToken, payload.categories);
         break;
       case "getUsers":
         result = getUsers(payload.sessionToken);
@@ -279,7 +267,7 @@ function handleApiRequest(action, payload) {
         result = changePassword(
           payload.sessionToken,
           payload.oldPassword,
-          payload.newPassword,
+          payload.newPassword
         );
         break;
       default:
@@ -290,7 +278,7 @@ function handleApiRequest(action, payload) {
   }
 
   return ContentService.createTextOutput(
-    JSON.stringify(sanitizeDates(result)),
+    JSON.stringify(sanitizeDates(result))
   ).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -299,6 +287,7 @@ function validateSession(token) {
   if (!token) throw new Error("Sesi tidak valid. Silakan login kembali.");
   const ss = getDb();
   const sheet = ss.getSheetByName("Users");
+  if (!sheet) throw new Error("Database belum diinisialisasi.");
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
@@ -316,6 +305,7 @@ function validateSession(token) {
 
 function loginUser(username, password) {
   try {
+    setupDatabase();
     const ss = getDb();
     const sheet = ss.getSheetByName("Users");
     const data = sheet.getDataRange().getValues();
@@ -335,7 +325,7 @@ function loginUser(username, password) {
           username: row[1],
           nama_lengkap: row[3],
           role: row[4],
-          token: row[0], // Menggunakan User ID sebagai token sesi sederhana
+          token: row[0],
         };
         return sanitizeDates({ success: true, user: userObj });
       }
@@ -346,45 +336,35 @@ function loginUser(username, password) {
   }
 }
 
-// --- DATA ACCESS LAYER (CRUD) ---
+// --- DATA ACCESS LAYER ---
 
 function getDashboardSummary(sessionToken) {
-  const user = validateSession(sessionToken);
+  validateSession(sessionToken);
   const ss = getDb();
 
-  // Shifts Count
   const shiftsSheet = ss.getSheetByName("Shifts");
-  const totalShifts = Math.max(0, shiftsSheet.getLastRow() - 1);
+  const totalShifts = Math.max(0, shiftsSheet ? shiftsSheet.getLastRow() - 1 : 0);
 
-  // Inventory Items Count & Low Stock Alert
-  const itemsSheet = ss.getSheetByName("InventoryItems");
-  const itemData = itemsSheet.getDataRange().getValues();
-  let totalItems = 0;
-  let lowStockCount = 0;
-  for (let i = 1; i < itemData.length; i++) {
-    totalItems++;
-    if (Number(itemData[i][3]) <= 2) {
-      lowStockCount++;
+  let pendingIssues = 0;
+  if (shiftsSheet) {
+    const shiftRows = shiftsSheet.getDataRange().getValues();
+    if (shiftRows.length > 1) {
+      const lastShift = shiftRows[shiftRows.length - 1];
+      try {
+        const txGangguan = JSON.parse(lastShift[9] || lastShift[7] || "{}");
+        pendingIssues = Number(txGangguan.gangguan_belum_selesai || 0);
+      } catch (e) {}
     }
   }
 
-  // Pending Issues (Gangguan Belum Selesai dari Shift Terakhir)
-  let pendingIssues = 0;
-  const shiftRows = shiftsSheet.getDataRange().getValues();
-  if (shiftRows.length > 1) {
-    const lastShift = shiftRows[shiftRows.length - 1];
-    try {
-      const txGangguan = JSON.parse(lastShift[7] || "{}");
-      pendingIssues = Number(txGangguan.gangguan_belum_selesai || 0);
-    } catch (e) {}
-  }
+  const teamsSheet = ss.getSheetByName("Teams");
+  const totalTeams = Math.max(0, teamsSheet ? teamsSheet.getLastRow() - 1 : 0);
 
   return sanitizeDates({
     success: true,
     stats: {
       totalShifts: totalShifts,
-      totalItems: totalItems,
-      lowStockCount: lowStockCount,
+      totalTeams: totalTeams,
       pendingIssues: pendingIssues,
     },
   });
@@ -394,7 +374,7 @@ function getInitialData(sessionToken) {
   const user = validateSession(sessionToken);
   const dashboard = getDashboardSummary(sessionToken);
   const shifts = getShifts(sessionToken);
-  const inventory = getInventory(sessionToken);
+  const inventoryConfig = getInventoryConfig(sessionToken);
   const teams = getTeams(sessionToken);
   let users = [user];
   if (user.role === "Admin") {
@@ -411,7 +391,7 @@ function getInitialData(sessionToken) {
     data: {
       dashboard: dashboard.stats,
       shifts: shifts.data,
-      inventory: inventory.data,
+      inventoryConfig: inventoryConfig.data,
       teams: teams.data,
       users: users,
     },
@@ -419,28 +399,67 @@ function getInitialData(sessionToken) {
 }
 
 function getShifts(sessionToken) {
-  validateSession(sessionToken);
+  const user = validateSession(sessionToken);
   const ss = getDb();
   const sheet = ss.getSheetByName("Shifts");
+  if (!sheet) return sanitizeDates({ success: true, data: [] });
+
   const rows = sheet.getDataRange().getValues();
   const shifts = [];
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
+    const createdBy = String(r[10] || r[8] || "");
+
+    // Filtering per pengguna jika role Petugas: HANYA TAMPILKAN DATA BUATAN SENDIRI
+    if (user.role === "Petugas") {
+      const matchName = (user.nama_lengkap || "").toLowerCase();
+      const matchUsername = (user.username || "").toLowerCase();
+      const createdByLower = createdBy.toLowerCase();
+
+      if (createdByLower !== matchName && createdByLower !== matchUsername) {
+        continue; // Lewati data milik petugas lain!
+      }
+    }
+    
+    // Parse Petugas In & Out with fallback for older format
+    let petugasIn = [];
+    let petugasOut = [];
+    if (typeof r[5] === "string" && r[5].startsWith("[")) {
+      try { petugasIn = JSON.parse(r[5] || "[]"); } catch(e){}
+    } else if (Array.isArray(r[5])) {
+      petugasIn = r[5];
+    }
+
+    if (typeof r[6] === "string" && r[6].startsWith("[")) {
+      try { petugasOut = JSON.parse(r[6] || "[]"); } catch(e){}
+    } else if (Array.isArray(r[6])) {
+      petugasOut = r[6];
+    }
+
+    // Backup parse jika baris lama memakai 1 kolom attendance
+    if (petugasIn.length === 0 && petugasOut.length === 0 && r[5]) {
+      try {
+        const oldAtt = typeof r[5] === "string" ? JSON.parse(r[5]) : r[5];
+        if (Array.isArray(oldAtt)) {
+          petugasIn = oldAtt.map(p => p.nama_lengkap || p);
+        }
+      } catch(e){}
+    }
+
     shifts.push({
       id: r[0],
       nama_serah_terima: r[1],
       regu_list: r[2],
       waktu_shift: r[3],
       jenis_shift: r[4],
-      petugas_attendance:
-        typeof r[5] === "string" ? JSON.parse(r[5] || "[]") : r[5],
-      peralatan_kondisi:
-        typeof r[6] === "string" ? JSON.parse(r[6] || "{}") : r[6],
-      transaksi_gangguan:
-        typeof r[7] === "string" ? JSON.parse(r[7] || "{}") : r[7],
-      created_by: r[8],
-      created_at: r[9],
+      petugas_in: petugasIn,
+      petugas_out: petugasOut,
+      peralatan_kondisi: typeof r[7] === "string" ? JSON.parse(r[7] || "{}") : r[7],
+      inventaris_manual: typeof r[8] === "string" ? JSON.parse(r[8] || "[]") : r[8],
+      transaksi_gangguan: typeof r[9] === "string" ? JSON.parse(r[9] || "{}") : r[9],
+      created_by: createdBy,
+      created_at: r[11] || r[9] || "",
     });
   }
 
@@ -450,7 +469,11 @@ function getShifts(sessionToken) {
 function createShift(sessionToken, shiftData) {
   const user = validateSession(sessionToken);
   const ss = getDb();
-  const sheet = ss.getSheetByName("Shifts");
+  let sheet = ss.getSheetByName("Shifts");
+  if (!sheet) {
+    setupDatabase();
+    sheet = ss.getSheetByName("Shifts");
+  }
 
   const id = generateId("SFT");
   const now = new Date().toISOString();
@@ -461,8 +484,10 @@ function createShift(sessionToken, shiftData) {
     (shiftData.regu_list || []).join(", "),
     shiftData.waktu_shift || now,
     shiftData.jenis_shift,
-    JSON.stringify(shiftData.petugas_attendance || []),
+    JSON.stringify(shiftData.petugas_in || []),
+    JSON.stringify(shiftData.petugas_out || []),
     JSON.stringify(shiftData.peralatan_kondisi || {}),
+    JSON.stringify(shiftData.inventaris_manual || []),
     JSON.stringify(shiftData.transaksi_gangguan || {}),
     user.nama_lengkap,
     now,
@@ -470,67 +495,62 @@ function createShift(sessionToken, shiftData) {
 
   return sanitizeDates({
     success: true,
-    message: "Serah terima shift berhasil disimpan!",
+    message: "Serah terima shift & data inventaris berhasil disimpan!",
   });
 }
 
-function getInventory(sessionToken) {
+// --- CONFIG CHECKLIST INVENTARIS DINAMIS ---
+
+function getInventoryConfig(sessionToken) {
   validateSession(sessionToken);
   const ss = getDb();
-  const catSheet = ss.getSheetByName("Categories");
-  const itemSheet = ss.getSheetByName("InventoryItems");
+  const sheet = ss.getSheetByName("InventoryConfig");
+  if (!sheet) return sanitizeDates({ success: true, data: [] });
 
-  const catRows = catSheet.getDataRange().getValues();
-  const itemRows = itemSheet.getDataRange().getValues();
+  const rows = sheet.getDataRange().getValues();
+  const config = [];
 
-  const categoriesMap = {};
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    let items = [];
+    try {
+      items = typeof r[2] === "string" ? JSON.parse(r[2] || "[]") : r[2];
+    } catch (e) {}
 
-  for (let i = 1; i < catRows.length; i++) {
-    const cid = catRows[i][0];
-    categoriesMap[cid] = {
-      id: cid,
-      nama_kategori: catRows[i][1],
-      created_at: catRows[i][2],
-      items: [],
-    };
+    config.push({
+      id: r[0],
+      nama_kategori: r[1],
+      items: items,
+      created_at: r[3],
+    });
   }
 
-  for (let j = 1; j < itemRows.length; j++) {
-    const catId = itemRows[j][1];
-    if (categoriesMap[catId]) {
-      categoriesMap[catId].items.push({
-        id: itemRows[j][0],
-        category_id: catId,
-        nama_sub_item: itemRows[j][2],
-        stok: Number(itemRows[j][3]),
-        updated_at: itemRows[j][4],
-      });
-    }
-  }
-
-  const result = Object.keys(categoriesMap).map((key) => categoriesMap[key]);
-  return sanitizeDates({ success: true, data: result });
+  return sanitizeDates({ success: true, data: config });
 }
 
-function saveCategoryWithItems(sessionToken, data) {
+function saveInventoryConfig(sessionToken, categoriesArray) {
   const user = validateSession(sessionToken);
+  if (user.role !== "Admin") throw new Error("Akses ditolak: Hanya Admin yang diizinkan.");
+
   const ss = getDb();
-  const catSheet = ss.getSheetByName("Categories");
-  const itemSheet = ss.getSheetByName("InventoryItems");
+  let sheet = ss.getSheetByName("InventoryConfig");
+  if (!sheet) {
+    sheet = getOrCreateSheet(ss, "InventoryConfig", ["id", "nama_kategori", "items_json", "created_at"]);
+  }
 
-  const catId = generateId("CAT");
+  sheet.clearContents();
+  sheet.appendRow(["id", "nama_kategori", "items_json", "created_at"]);
+  sheet.getRange(1, 1, 1, 4).setFontWeight("bold").setBackground("#e2e8f0");
+
   const now = new Date().toISOString();
-
-  catSheet.appendRow([catId, data.nama_kategori, now]);
-
-  if (Array.isArray(data.items)) {
-    data.items.forEach((sub) => {
-      if (sub.nama_sub_item) {
-        itemSheet.appendRow([
-          generateId("ITM"),
-          catId,
-          sub.nama_sub_item,
-          Number(sub.stok || 0),
+  if (Array.isArray(categoriesArray)) {
+    categoriesArray.forEach((cat) => {
+      if (cat.nama_kategori) {
+        const cleanItems = (cat.items || []).filter((i) => i && i.trim() !== "");
+        sheet.appendRow([
+          cat.id || generateId("CFG"),
+          cat.nama_kategori,
+          JSON.stringify(cleanItems),
           now,
         ]);
       }
@@ -539,182 +559,15 @@ function saveCategoryWithItems(sessionToken, data) {
 
   return sanitizeDates({
     success: true,
-    message: "Kategori & Sub-item berhasil ditambahkan!",
+    message: "Pengaturan Kategori & Sub-Kategori Checklist Inventaris berhasil disimpan!",
   });
 }
 
-function quickUpdateStock(sessionToken, itemId, newStock, reason) {
-  const user = validateSession(sessionToken);
-  const ss = getDb();
-  const itemSheet = ss.getSheetByName("InventoryItems");
-  const catSheet = ss.getSheetByName("Categories");
-  const logSheet = ss.getSheetByName("StockLogs");
-
-  const itemRows = itemSheet.getDataRange().getValues();
-  const catRows = catSheet.getDataRange().getValues();
-
-  let targetRowIndex = -1;
-  let targetItem = null;
-
-  for (let i = 1; i < itemRows.length; i++) {
-    if (itemRows[i][0] === itemId) {
-      targetRowIndex = i + 1;
-      targetItem = {
-        id: itemRows[i][0],
-        category_id: itemRows[i][1],
-        nama_sub_item: itemRows[i][2],
-        stok_sebelum: Number(itemRows[i][3]),
-      };
-      break;
-    }
-  }
-
-  if (targetRowIndex === -1) throw new Error("Item tidak ditemukan.");
-
-  // Find Category Name
-  let catName = "Umum";
-  for (let j = 1; j < catRows.length; j++) {
-    if (catRows[j][0] === targetItem.category_id) {
-      catName = catRows[j][1];
-      break;
-    }
-  }
-
-  const stokSesudah = Number(newStock);
-  const selisih = stokSesudah - targetItem.stok_sebelum;
-  const jenisMutasi = selisih >= 0 ? "Quick Edit (+)" : "Quick Edit (-)";
-  const now = new Date().toISOString();
-
-  // Update stok di Sheet
-  itemSheet.getRange(targetRowIndex, 4).setValue(stokSesudah);
-  itemSheet.getRange(targetRowIndex, 5).setValue(now);
-
-  // Catat Audit Log
-  logSheet.appendRow([
-    generateId("LOG"),
-    itemId,
-    catName,
-    targetItem.nama_sub_item,
-    jenisMutasi,
-    Math.abs(selisih),
-    targetItem.stok_sebelum,
-    stokSesudah,
-    reason || "Quick edit stok dari tabel",
-    user.username,
-    now,
-  ]);
-
-  return sanitizeDates({ success: true, message: "Stok berhasil diperbarui!" });
-}
-
-function mutateStock(sessionToken, data) {
-  const user = validateSession(sessionToken);
-  const ss = getDb();
-  const itemSheet = ss.getSheetByName("InventoryItems");
-  const catSheet = ss.getSheetByName("Categories");
-  const logSheet = ss.getSheetByName("StockLogs");
-
-  const itemRows = itemSheet.getDataRange().getValues();
-  const catRows = catSheet.getDataRange().getValues();
-
-  let targetRowIndex = -1;
-  let targetItem = null;
-
-  for (let i = 1; i < itemRows.length; i++) {
-    if (itemRows[i][0] === data.itemId) {
-      targetRowIndex = i + 1;
-      targetItem = {
-        id: itemRows[i][0],
-        category_id: itemRows[i][1],
-        nama_sub_item: itemRows[i][2],
-        stok_sebelum: Number(itemRows[i][3]),
-      };
-      break;
-    }
-  }
-
-  if (targetRowIndex === -1) throw new Error("Item tidak ditemukan.");
-
-  let catName = "Umum";
-  for (let j = 1; j < catRows.length; j++) {
-    if (catRows[j][0] === targetItem.category_id) {
-      catName = catRows[j][1];
-      break;
-    }
-  }
-
-  const qty = Number(data.jumlah);
-  let stokSesudah = targetItem.stok_sebelum;
-
-  if (data.jenis_mutasi === "Tambah") {
-    stokSesudah += qty;
-  } else {
-    stokSesudah = Math.max(0, stokSesudah - qty);
-  }
-
-  const now = new Date().toISOString();
-
-  itemSheet.getRange(targetRowIndex, 4).setValue(stokSesudah);
-  itemSheet.getRange(targetRowIndex, 5).setValue(now);
-
-  logSheet.appendRow([
-    generateId("LOG"),
-    data.itemId,
-    catName,
-    targetItem.nama_sub_item,
-    data.jenis_mutasi,
-    qty,
-    targetItem.stok_sebelum,
-    stokSesudah,
-    data.keterangan || "Mutasi Stok",
-    user.username,
-    now,
-  ]);
-
-  return sanitizeDates({
-    success: true,
-    message: "Mutasi stok berhasil diproses!",
-  });
-}
-
-function getStockLogs(sessionToken) {
-  const user = validateSession(sessionToken);
-  const ss = getDb();
-  const sheet = ss.getSheetByName("StockLogs");
-  const rows = sheet.getDataRange().getValues();
-  const logs = [];
-
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
-    const logUser = r[9];
-
-    // Filter per pengguna untuk role Petugas
-    if (user.role === "Petugas" && logUser !== user.username) {
-      continue;
-    }
-
-    logs.push({
-      id: r[0],
-      item_id: r[1],
-      nama_kategori: r[2],
-      nama_sub_item: r[3],
-      jenis_mutasi: r[4],
-      jumlah: r[5],
-      stok_sebelum: r[6],
-      stok_sesudah: r[7],
-      keterangan: r[8],
-      pengubah: r[9],
-      timestamp: r[10],
-    });
-  }
-
-  return sanitizeDates({ success: true, data: logs.reverse() });
-}
+// --- MANAGEMENT USER & REGU ---
 
 function getUsers(sessionToken) {
   const user = validateSession(sessionToken);
-  if (user.role !== "Admin")
-    throw new Error("Akses ditolak: Hanya Admin yang diizinkan.");
+  if (user.role !== "Admin") throw new Error("Akses ditolak: Hanya Admin yang diizinkan.");
 
   const ss = getDb();
   const sheet = ss.getSheetByName("Users");
@@ -747,7 +600,6 @@ function saveUser(sessionToken, userData) {
   const now = new Date().toISOString();
 
   if (userData.id) {
-    // Edit User
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0] === userData.id) {
         sheet.getRange(i + 1, 2).setValue(userData.username);
@@ -764,7 +616,6 @@ function saveUser(sessionToken, userData) {
       }
     }
   } else {
-    // New User
     const newId = generateId("USR");
     const hashed = hashPassword(userData.password || "123456");
     sheet.appendRow([
@@ -807,6 +658,8 @@ function getTeams(sessionToken) {
   validateSession(sessionToken);
   const ss = getDb();
   const sheet = ss.getSheetByName("Teams");
+  if (!sheet) return sanitizeDates({ success: true, data: [] });
+
   const rows = sheet.getDataRange().getValues();
   const teams = [];
 
@@ -828,7 +681,6 @@ function saveTeams(sessionToken, teamsArray) {
   const ss = getDb();
   const sheet = ss.getSheetByName("Teams");
 
-  // Reset Sheet
   sheet.clearContents();
   sheet.appendRow(["id", "nama_regu", "keterangan"]);
   sheet.getRange(1, 1, 1, 3).setFontWeight("bold").setBackground("#e2e8f0");
